@@ -234,50 +234,6 @@
       "tag": "@derma"
     },
     {
-      "id": "TC_E2E_APPT_EMERGENCY_ENDO",
-      "specialtyName": "Emergency Endocrinology",
-      "specialtySlug": "emergency-endo",
-      "doctorName": "Dr. QA Emergency Endocrinology",
-      "staffUsername": "qa.emergency.endo@omnivva.com",
-      "facility": "LifeLine Super Specialty",
-      "symptoms": "High blood glucose levels and fatigue",
-      "diagnosis": "Type 2 Diabetes Mellitus Checkup",
-      "tag": "@emergency-endo"
-    },
-    {
-      "id": "TC_E2E_APPT_GENERAL_SURGERY",
-      "specialtyName": "General Surgery",
-      "specialtySlug": "generalsurgery",
-      "doctorName": "Dr. QA General Surgery",
-      "staffUsername": "qa.generalsurgery@omnivva.com",
-      "facility": "LifeLine Super Specialty",
-      "symptoms": "Localized abdominal swelling",
-      "diagnosis": "Pre-Op Surgical Evaluation",
-      "tag": "@generalsurgery"
-    },
-    {
-      "id": "TC_E2E_APPT_INFECTIOUS_DISEASE",
-      "specialtyName": "Infectious Disease",
-      "specialtySlug": "infectious-disease",
-      "doctorName": "Dr. QA Infectious Disease",
-      "staffUsername": "qa.infectious.disease@omnivva.com",
-      "facility": "LifeLine Super Specialty",
-      "symptoms": "Persistent high grade fever and body chills",
-      "diagnosis": "Post-Viral Syndrome",
-      "tag": "@infectious-disease"
-    },
-    {
-      "id": "TC_E2E_APPT_INTERNAL_MEDICINE",
-      "specialtyName": "Internal Medicine",
-      "specialtySlug": "internal-medicine",
-      "doctorName": "Dr. QA Internal Medicine",
-      "staffUsername": "qa.internal.medicine@omnivva.com",
-      "facility": "LifeLine Super Specialty",
-      "symptoms": "Fatigue and elevated blood pressure",
-      "diagnosis": "Primary Hypertension",
-      "tag": "@internal-medicine"
-    },
-    {
       "id": "TC_E2E_APPT_MATERNITY",
       "specialtyName": "Maternity",
       "specialtySlug": "maternity",
