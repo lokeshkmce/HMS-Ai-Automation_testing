@@ -29,6 +29,12 @@ export interface ConsultationClinicalData {
   procedure?: string;
   quantityOrDays?: string;
   prescription?: PrescriptionData;
+  // Clinical Referrals
+  labTestName?: string;
+  radiologyModality?: string;
+  radiologyScanName?: string;
+  quickPrescriptionQuery?: string;
+  quickPrescriptionDrug?: string;
 }
 
 /**
@@ -495,6 +501,169 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
+   * Click "In Consult" tab or filter in Doctor Console.
+   */
+  async clickInConsultTab(): Promise<boolean> {
+    logger.info('[Doctor Queue] Clicking "In Consult" tab/button...');
+    const inConsultBtn = this.page.getByRole('button', { name: /in consult/i })
+      .or(this.page.locator('button:has-text("In Consult")'))
+      .first();
+
+    if (await inConsultBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await inConsultBtn.click();
+      await this.page.waitForTimeout(1000);
+      logger.info('[Doctor Queue] ✓ Clicked "In Consult"');
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Action: Refer for Lab (Diagnostic test orders)
+   */
+  async referForLab(testName = 'Arterial Blood Gas (ABG)'): Promise<boolean> {
+    logger.info(`[Doctor Queue] Refer for Lab: selecting "${testName}"...`);
+    const referLabBtn = this.page.getByRole('button', { name: /refer for lab/i })
+      .or(this.page.locator('button:has-text("Refer for Lab")'))
+      .first();
+
+    if (await referLabBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await referLabBtn.click();
+      await this.page.waitForTimeout(800);
+
+      // Select specific test or first available test item
+      const testItem = this.page.getByRole('cell', { name: new RegExp(testName, 'i') })
+        .or(this.page.locator('tr, li, div[role="button"]').filter({ hasText: new RegExp(testName, 'i') }))
+        .first();
+
+      if (await testItem.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await testItem.click();
+        await this.page.waitForTimeout(500);
+      }
+
+      // Suggest to Patient
+      const suggestBtn = this.page.getByRole('button', { name: /suggest to patient/i })
+        .or(this.page.locator('button:has-text("Suggest to Patient")'))
+        .first();
+
+      if (await suggestBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await suggestBtn.click();
+        await this.page.waitForTimeout(800);
+        logger.info(`[Doctor Queue] ✓ Lab referral submitted: "${testName}"`);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Action: Refer for Radiology (MRI / CT / X-Ray imaging orders)
+   */
+  async referForRadiology(modality = 'MRI', scanName = 'MRI Brain with Contrast'): Promise<boolean> {
+    logger.info(`[Doctor Queue] Refer for Radiology: modality "${modality}", scan "${scanName}"...`);
+    const referRadBtn = this.page.getByRole('button', { name: /refer for radiology/i })
+      .or(this.page.locator('button:has-text("Refer for Radiology")'))
+      .first();
+
+    if (await referRadBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await referRadBtn.click();
+      await this.page.waitForTimeout(800);
+
+      // Click modality button (e.g. MRI)
+      const modalityBtn = this.page.getByRole('button', { name: new RegExp(`^${modality}$`, 'i') })
+        .or(this.page.locator('button').filter({ hasText: new RegExp(`^${modality}$`, 'i') }))
+        .first();
+
+      if (await modalityBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await modalityBtn.click();
+        await this.page.waitForTimeout(500);
+      }
+
+      // Open body part / scan combobox
+      const combobox = this.page.getByRole('combobox', { name: /search and select body part|body part/i })
+        .or(this.page.locator('input[placeholder*="body part" i], [role="combobox"]'))
+        .first();
+
+      if (await combobox.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await combobox.click();
+        await this.page.waitForTimeout(500);
+
+        const scanOption = this.page.getByRole('option', { name: new RegExp(scanName, 'i') })
+          .or(this.page.locator('li[role="option"], .MuiMenuItem-root').filter({ hasText: new RegExp(scanName, 'i') }))
+          .first();
+
+        if (await scanOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await scanOption.click();
+          await this.page.waitForTimeout(500);
+        }
+      }
+
+      // Click "Suggest Scan"
+      const suggestScanBtn = this.page.getByRole('button', { name: /suggest scan/i })
+        .or(this.page.locator('button:has-text("Suggest Scan")'))
+        .first();
+
+      if (await suggestScanBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await suggestScanBtn.click();
+        await this.page.waitForTimeout(800);
+        logger.info(`[Doctor Queue] ✓ Radiology referral submitted: "${scanName}"`);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Action: Write Prescription (Quick E-Prescription)
+   */
+  async writeAndSavePrescription(drugQuery = 'L', drugName = 'Pantoprazole 40mg'): Promise<boolean> {
+    logger.info(`[Doctor Queue] Write Prescription: query "${drugQuery}", select "${drugName}"...`);
+    const writeRxBtn = this.page.getByRole('button', { name: /write prescription/i })
+      .or(this.page.locator('button:has-text("Write Prescription")'))
+      .first();
+
+    if (await writeRxBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await writeRxBtn.click();
+      await this.page.waitForTimeout(800);
+
+      // Search textbox
+      const searchBox = this.page.getByRole('textbox', { name: /e\.g\. Tab Aspirin|search medicine/i })
+        .or(this.page.locator('input[placeholder*="Aspirin" i], input[placeholder*="medicine" i]'))
+        .first();
+
+      if (await searchBox.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await searchBox.click();
+        await searchBox.fill(drugQuery);
+        await this.page.waitForTimeout(600);
+
+        // Select drug
+        const drugItem = this.page.locator('div, li, [role="option"]')
+          .filter({ hasText: new RegExp(`^${drugName}$`, 'i') })
+          .or(this.page.locator('div, li, [role="option"]').filter({ hasText: new RegExp(drugName, 'i') }))
+          .first();
+
+        if (await drugItem.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await drugItem.click();
+          await this.page.waitForTimeout(500);
+        }
+      }
+
+      // Click "Verify & Save Prescription"
+      const verifySaveBtn = this.page.getByRole('button', { name: /verify & save prescription|save prescription/i })
+        .or(this.page.locator('button:has-text("Verify & Save Prescription"), button:has-text("Save Prescription")'))
+        .first();
+
+      if (await verifySaveBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await verifySaveBtn.click();
+        await this.page.waitForTimeout(1000);
+        logger.info(`[Doctor Queue] ✓ Prescription verified and saved: "${drugName}"`);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Orchestrate the complete 3-step consultation wizard filling all data inputs:
    *   Step 1: Patient Details (Chief Complaint, Referred By)
    *   Step 2: Specialty Assessment (Assessment Dropdowns, Imaging MRI/CT Findings)
@@ -510,8 +679,22 @@ export class DoctorQueuePage extends BasePage {
       : clinicalData;
 
     const diagnosis = config.diagnosis || 'General Consultation Completed';
+
+    // If "In Consult" tab is present, try clicking it
+    await this.clickInConsultTab().catch(() => false);
+
     const opened = await this.startConsult(config.startIndex ?? startIndex);
     if (!opened) {
+      // If wizard is not opened, check if direct In Consult actions (Lab, Radiology, Rx) are visible
+      const labDone = await this.referForLab(config.labTestName || 'Arterial Blood Gas (ABG)').catch(() => false);
+      const radDone = await this.referForRadiology(config.radiologyModality || 'MRI', config.radiologyScanName || 'MRI Brain with Contrast').catch(() => false);
+      const rxDone = await this.writeAndSavePrescription(config.quickPrescriptionQuery || 'L', config.quickPrescriptionDrug || 'Pantoprazole 40mg').catch(() => false);
+
+      if (labDone || radDone || rxDone) {
+        logger.info(`[Doctor Queue] ✓ Performed direct In Consult clinical actions (Lab: ${labDone}, Rad: ${radDone}, Rx: ${rxDone})`);
+        return;
+      }
+
       logger.info(`[Doctor Queue] Consultation wizard was not opened (queue empty or pending). Skipping wizard steps.`);
       return;
     }
