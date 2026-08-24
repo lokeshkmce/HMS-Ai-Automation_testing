@@ -167,7 +167,7 @@
       "specialtyName": "Infectious Disease",
       "specialtySlug": "infectious-disease",
       "doctorName": "Dr. QA Infectious Disease",
-      "staffUsername": "qa.infectiousdisease@omnivva.com",
+      "staffUsername": "qa.infectious.disease@omnivva.com",
       "facility": "Omnivva Central Hospital",
       "symptoms": "High fever, chills, and productive cough",
       "upiId": "loki@upi",
@@ -175,6 +175,14 @@
       "icd10Code": "J18.9",
       "treatmentPlan": "Oral Azithromycin 500mg daily, adequate hydration, follow up in 1 week.",
       "doctorNotes": "Patient instructed on fever monitoring and respiratory etiquette.",
+      "prescription": {
+        "drugQuery": "as",
+        "drugName": "Montelukast 10mg",
+        "dosage": "10mg",
+        "frequency": "1",
+        "clinicalAdvice": "Take at night"
+      },
+      "scheduleNextVisit": "2026-08-26",
       "tag": "@infectious-disease"
     },
     {

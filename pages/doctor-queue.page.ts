@@ -485,15 +485,40 @@ export class DoctorQueuePage extends BasePage {
   /**
    * Click "Submit Consult" / "Next >" / "Complete Consult" to finalise the consultation.
    */
-  async submitConsult(): Promise<void> {
+  async submitConsult(diagnosis = 'General Consultation Completed'): Promise<void> {
     logger.info('[Doctor Queue] Submitting consultation...');
     const submitBtn = this.page
-      .locator('button:has-text("Next >"), button:has-text("Submit Consult"), button:has-text("Submit"), button:has-text("Complete Consult"), button:has-text("Save")')
+      .locator('button:has-text("Submit Consult"), button:has-text("Next >"), button:has-text("Complete Consult"), button:has-text("Submit"), button:has-text("Save")')
       .first();
 
     if (await submitBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await submitBtn.click();
-      await this.page.waitForTimeout(2000);
+      await this.page.waitForTimeout(1000);
+
+      // If a modal asking for Diagnosis appears
+      const diagInput = this.page.getByRole('textbox', { name: /diagnosis/i })
+        .or(this.page.locator('[role="dialog"] input, [role="dialog"] textarea, input[placeholder*="Diagnosis" i]'))
+        .first();
+      if (await diagInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await diagInput.fill(diagnosis);
+        await this.page.waitForTimeout(500);
+
+        const modalSubmit = this.page.locator('[role="dialog"] button:has-text("Submit"), button:has-text("Submit Consult")').last();
+        if (await modalSubmit.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await modalSubmit.click();
+          await this.page.waitForTimeout(1000);
+        }
+      }
+
+      // Click "Done" if present
+      const doneBtn = this.page.getByRole('button', { name: /^Done$/i })
+        .or(this.page.locator('button:has-text("Done")'))
+        .first();
+      if (await doneBtn.isVisible({ timeout: 2500 }).catch(() => false)) {
+        await doneBtn.click();
+        await this.page.waitForTimeout(1000);
+      }
+
       logger.info('[Doctor Queue] ✓ Consultation submitted successfully.');
     } else {
       logger.info('[Doctor Queue] Submit button not visible or consultation auto-saved.');
