@@ -369,6 +369,12 @@ export async function consultPatientByDoctor(
       config.doctorNotes ||
       testData.consultation?.doctorNotes ||
       'Patient counseled on clinical findings, medication adherence, and follow-up.',
+    checkboxes: config.checkboxes,
+    labTestName: config.labTestName,
+    radiologyModality: config.radiologyModality,
+    radiologyScanName: config.radiologyScanName,
+    quickPrescriptionDrug: config.prescription?.drugName,
+    quickPrescriptionQuery: config.prescription?.drugQuery,
     startIndex: 0,
     wizardNextClicks: config.wizardNextClicks || 2,
   });

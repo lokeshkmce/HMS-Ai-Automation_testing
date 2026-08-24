@@ -405,9 +405,9 @@ export class DoctorQueuePage extends BasePage {
     // 3. Add Prescription sub-flow
     await this.addPrescription(data.prescription);
 
-    // 4. Submit / Complete Consult
-    await this.submitConsult();
-    logger.info('[Consultation Step 3: Diagnosis & Plan] ✓ Completed and submitted consultation');
+    // 4. Advance Step 3 (Click Next > / Continue)
+    await this.clickNext();
+    logger.info('[Consultation Step 3: Diagnosis & Plan] ✓ Completed Step 3 Diagnosis & Plan');
   }
 
   /**
