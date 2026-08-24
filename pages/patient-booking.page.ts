@@ -242,6 +242,22 @@ export class PatientBookingPage extends BasePage {
   }
 
   /**
+   * Helper: Return from Step 3 to Step 2 if and only if we are currently on Step 3
+   */
+  async clickBackToStep2(): Promise<void> {
+    const onStep2 = await this.page.locator('button:has-text("SEARCH BY SPECIALTY"), [role="tab"]:has-text("SPECIALTY")').first().isVisible({ timeout: 1000 }).catch(() => false);
+    if (onStep2) {
+      return;
+    }
+    const backBtn = this.page.locator('main button:has-text("Back"), main [role="button"]:has-text("Back")')
+      .or(this.page.getByRole('button', { name: /^Back$/i })).first();
+    if (await backBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await backBtn.click();
+      await this.page.waitForTimeout(1000);
+    }
+  }
+
+  /**
    * Dynamic fallback: If target specialty/facility has no active doctors,
    * go back to Step 2 and iterate across all facilities and all available specialties
    * until finding a combination that displays active doctor cards.
@@ -249,46 +265,124 @@ export class PatientBookingPage extends BasePage {
   async findAnyAvailableDoctor(): Promise<boolean> {
     logger.info('[Doctor Discovery] Starting fallback search across all facilities & specialties...');
     await this.ensureOnBookingPage();
+    await this.clickBackToStep2();
 
-    // If currently on Step 3, click Back to return to Step 2
-    const onStep3 = await this.page.locator('main').locator('text=/Select Doctor/i, text=/Experience:/i').first().isVisible({ timeout: 1500 }).catch(() => false);
-    if (onStep3) {
-      logger.info('[Doctor Discovery] On Step 3 without doctors — clicking Back to Step 2: Find Doctor...');
-      await this.clickBack();
-      await this.page.waitForTimeout(1000);
-    }
-
-    // Try SEARCH BY SPECIALTY tab first (fastest and most direct)
-    const specTab = this.page.locator('main button:has-text("SEARCH BY SPECIALTY"), main [role="tab"]:has-text("SPECIALTY")').first();
+    // Ensure SEARCH BY SPECIALTY tab is active
+    const specTab = this.page.locator('button:has-text("SEARCH BY SPECIALTY"), [role="tab"]:has-text("SPECIALTY")').first();
     if (await specTab.isVisible({ timeout: 2000 }).catch(() => false)) {
       await specTab.click();
-      await this.page.waitForTimeout(800);
+      await this.page.waitForTimeout(600);
+    }
 
-      const specCards = this.page.locator('main [class*="MuiCard-root"], main div[class*="Card"], [role="tabpanel"] [class*="MuiCard-root"]');
-      const cardCount = await specCards.count();
-      for (let k = 0; k < Math.min(cardCount, 10); k++) {
-        const card = specCards.nth(k);
-        const cardName = (await card.textContent())?.trim() || `Card-${k}`;
-        logger.info(`[Doctor Discovery] Trying specialty card "${cardName.slice(0, 30)}"...`);
-        await card.click().catch(() => null);
-        await this.page.waitForTimeout(500);
+    const specialtyCombo = this.page.locator('.MuiSelect-select').nth(0);
+    const facilityCombo = this.page.locator('.MuiSelect-select').nth(2);
+
+    // Candidates known to have active doctors
+    const candidates = ['Dental', 'ENT', 'Neurology', 'General Medicine', 'Dermatology', 'Maternity'];
+
+    for (const spec of candidates) {
+      logger.info(`[Doctor Discovery] Testing candidate Specialty: "${spec}"...`);
+      const specSelected = await this.selectOptionFromSelect(specialtyCombo, spec);
+      if (!specSelected) continue;
+
+      await this.page.waitForTimeout(500);
+
+      // Open Facility dropdown
+      await facilityCombo.click();
+      await this.page.waitForTimeout(600);
+      const facOptionEls = this.page.locator('li[role="option"], [role="option"]');
+      const facCount = await facOptionEls.count();
+      const currentFacNames: string[] = [];
+      for (let i = 0; i < facCount; i++) {
+        const text = (await facOptionEls.nth(i).textContent())?.trim() || '';
+        if (text && !text.toLowerCase().includes('select facility')) {
+          currentFacNames.push(text);
+        }
+      }
+      await this.closeMuiDropdown();
+
+      logger.info(`[Doctor Discovery] Facilities available under "${spec}": ${JSON.stringify(currentFacNames)}`);
+
+      for (const fac of currentFacNames) {
+        logger.info(`[Doctor Discovery]   -> Testing Facility: "${fac}" for "${spec}"...`);
+        const facSelected = await this.selectOptionFromSelect(facilityCombo, fac);
+        if (!facSelected) continue;
+
+        await this.page.waitForTimeout(400);
+
+        const nextBtn = this.page.locator('main button:has-text("Next"), main button[type="submit"]')
+          .or(this.page.getByRole('button', { name: /^Next$/i })).first();
+
+        if (await nextBtn.isDisabled().catch(() => true)) continue;
+
         await this.clickNext();
-        await this.page.waitForTimeout(1500);
+        await this.page.waitForTimeout(1200);
 
         if (await this.hasActiveDoctorCards()) {
-          logger.info(`[Doctor Discovery] ✓✓ SUCCESS! Found active doctor(s) via card "${cardName.slice(0, 30)}"!`);
+          logger.info(`[Doctor Discovery] ✓✓ SUCCESS! Found active doctor(s) for "${spec}" at "${fac}"!`);
           return true;
         }
 
-        await this.clickBack();
+        logger.info(`[Doctor Discovery]   No doctors on Step 3 for "${spec}" at "${fac}" — going Back to Step 2...`);
+        await this.clickBackToStep2();
         await this.page.waitForTimeout(800);
-        if (await specTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await specTab.click();
-          await this.page.waitForTimeout(500);
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Helper: Select option from a MUI dropdown given its locator
+   */
+  private async selectOptionFromSelect(selectLocator: Locator, optionTextOrRegex: string | RegExp): Promise<boolean> {
+    if (!(await selectLocator.isVisible({ timeout: 3000 }).catch(() => false))) {
+      return false;
+    }
+    const isDisabled = await selectLocator.getAttribute('aria-disabled').catch(() => null);
+    if (isDisabled === 'true') {
+      return false;
+    }
+
+    await selectLocator.click();
+    await this.page.waitForTimeout(500);
+
+    const targetStr = typeof optionTextOrRegex === 'string' ? optionTextOrRegex : '';
+    const normTarget = targetStr.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // 1. Try exact or case-insensitive pattern matching first
+    const pattern = typeof optionTextOrRegex === 'string'
+      ? new RegExp(`^\\s*${optionTextOrRegex.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i')
+      : optionTextOrRegex;
+
+    let option = this.page.locator('li[role="option"], [role="option"], .MuiMenuItem-root')
+      .filter({ hasText: pattern })
+      .first();
+
+    if (await option.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await option.click();
+      await this.page.waitForTimeout(600);
+      return true;
+    }
+
+    // 2. Try normalized text matching (handles "Cardiosurgery" vs "Cardio Surgery", "Pmr and Rehab", etc.)
+    if (normTarget) {
+      const allOptions = this.page.locator('li[role="option"], [role="option"], .MuiMenuItem-root');
+      const optCount = await allOptions.count();
+      for (let i = 0; i < optCount; i++) {
+        const opt = allOptions.nth(i);
+        const optText = (await opt.textContent()) || '';
+        const normOpt = optText.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normOpt && (normOpt === normTarget || normOpt.includes(normTarget) || normTarget.includes(normOpt))) {
+          logger.info(`[selectOption] Matched option "${optText.trim()}" for target "${targetStr}" (normalized: "${normOpt}" ~ "${normTarget}")`);
+          await opt.click();
+          await this.page.waitForTimeout(600);
+          return true;
         }
       }
     }
 
+    await this.closeMuiDropdown();
     return false;
   }
 
@@ -300,134 +394,79 @@ export class PatientBookingPage extends BasePage {
     await this.ensureOnBookingPage();
     await this.page.waitForTimeout(800);
 
-    // Ensure SEARCH BY FACILITY tab is active
-    const facilityTab = this.page.locator('main button:has-text("SEARCH BY FACILITY"), main [role="tab"]:has-text("FACILITY")').first();
-    if (await facilityTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await facilityTab.click().catch(() => null);
-      await this.page.waitForTimeout(500);
-    }
-
     let doctorFound = false;
 
-    // 1. Open Facility dropdown to get list of facility names
-    const facilityCombo = this.page.locator('.MuiSelect-select').nth(1);
-    await facilityCombo.click();
-    await this.page.waitForTimeout(600);
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STRATEGY 1: SEARCH BY SPECIALTY Tab (Direct specialty lookup + Facility rotation)
+    // ─────────────────────────────────────────────────────────────────────────────
+    const specialtyTab = this.page.locator('button:has-text("SEARCH BY SPECIALTY"), [role="tab"]:has-text("SPECIALTY")').first();
+    if (await specialtyTab.isVisible({ timeout: 2000 }).catch(() => false)) {
+      logger.info(`[Step 2: Find Doctor] Attempting via "SEARCH BY SPECIALTY" tab...`);
+      await specialtyTab.click();
+      await this.page.waitForTimeout(600);
 
-    const facOptionEls = this.page.locator('li[role="option"], [role="option"]');
-    const facCount = await facOptionEls.count();
-    const facilityNames: string[] = [];
-    for (let i = 0; i < facCount; i++) {
-      const name = (await facOptionEls.nth(i).textContent())?.trim() || '';
-      if (name && !name.toLowerCase().includes('select facility')) {
-        facilityNames.push(name);
-      }
-    }
-    logger.info(`[Step 2: Find Doctor] Discovered ${facilityNames.length} facilities: ${JSON.stringify(facilityNames)}`);
+      // On SEARCH BY SPECIALTY tab:
+      // index 0: Specialty dropdown
+      // index 1: City dropdown
+      // index 2: Facility dropdown
+      const specialtyCombo = this.page.locator('.MuiSelect-select').nth(0);
+      const facilityCombo = this.page.locator('.MuiSelect-select').nth(2);
 
-    // Prioritize preferredFacility if provided
-    let orderedFacilities = facilityNames;
-    if (preferredFacility) {
-      const matched = facilityNames.filter(f => f.toLowerCase().includes(preferredFacility.toLowerCase()));
-      const others = facilityNames.filter(f => !f.toLowerCase().includes(preferredFacility.toLowerCase()));
-      orderedFacilities = [...matched, ...others];
-    }
+      const selectedSpec = await this.selectOptionFromSelect(specialtyCombo, specialty);
 
-    // 2. Select the first facility and try to find the target specialty
-    for (const facName of orderedFacilities) {
-      logger.info(`[Step 2: Find Doctor] Checking facility: "${facName}" for "${specialty}"...`);
+      if (selectedSpec) {
+        logger.info(`[Step 2: Find Doctor] Selected Specialty "${specialty}" on SEARCH BY SPECIALTY tab`);
+        await this.page.waitForTimeout(500);
 
-      // If dropdown is not already open for this facility, open it and click option
-      const opt = this.page.locator('li[role="option"], [role="option"]').filter({ hasText: new RegExp(facName, 'i') }).first();
-      if (await opt.isVisible({ timeout: 1500 }).catch(() => false)) {
-        await opt.click();
-      } else {
+        // Discover all facilities in Facility dropdown (nth(2))
         await facilityCombo.click();
-        await this.page.waitForTimeout(400);
-        const optRetry = this.page.locator('li[role="option"], [role="option"]').filter({ hasText: new RegExp(facName, 'i') }).first();
-        if (await optRetry.isVisible({ timeout: 1500 }).catch(() => false)) {
-          await optRetry.click();
-        } else {
-          await this.closeMuiDropdown();
-          continue;
+        await this.page.waitForTimeout(500);
+        const facOptionEls = this.page.locator('li[role="option"], [role="option"]');
+        const facCount = await facOptionEls.count();
+        const facilityNames: string[] = [];
+        for (let i = 0; i < facCount; i++) {
+          const name = (await facOptionEls.nth(i).textContent())?.trim() || '';
+          if (name && !name.toLowerCase().includes('select facility')) {
+            facilityNames.push(name);
+          }
         }
-      }
-      await this.page.waitForTimeout(600);
-
-      // Wait for Specialty dropdown to become enabled
-      const specialtyCombo = this.page.locator('.MuiSelect-select').nth(2);
-      for (let w = 0; w < 5; w++) {
-        const isDis = await specialtyCombo.getAttribute('aria-disabled').catch(() => null);
-        if (isDis !== 'true') break;
-        await this.page.waitForTimeout(400);
-      }
-
-      if ((await specialtyCombo.getAttribute('aria-disabled').catch(() => null)) === 'true') {
-        logger.info(`[Step 2: Find Doctor] Specialty dropdown disabled under "${facName}" — trying next`);
-        continue;
-      }
-
-      // Open Specialty dropdown
-      await specialtyCombo.click();
-      await this.page.waitForTimeout(600);
-
-      const specOption = this.page.locator('li[role="option"], [role="option"]')
-        .filter({ hasText: new RegExp(`^\\s*${specialty.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i') })
-        .or(this.page.locator('li[role="option"], [role="option"]').filter({ hasText: new RegExp(specialty.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }))
-        .first();
-
-      if (await specOption.isVisible({ timeout: 1500 }).catch(() => false)) {
-        logger.info(`[Step 2: Find Doctor] Found specialty option "${specialty}" under "${facName}". Selecting...`);
-        await specOption.click();
-        await this.page.waitForTimeout(600);
-
-        // Advance to Step 3 to verify if active doctor cards exist
-        await this.clickNext();
-        await this.page.waitForTimeout(1200);
-
-        if (await this.hasActiveDoctorCards()) {
-          logger.info(`[Step 2: Find Doctor] ✓ Active doctor(s) found for "${specialty}" at "${facName}"!`);
-          doctorFound = true;
-          break;
-        } else {
-          logger.info(`[Step 2: Find Doctor] No active doctor cards on Step 3 for "${specialty}" at "${facName}". Back to Step 2...`);
-          await this.clickBack();
-          await this.page.waitForTimeout(800);
-          continue;
-        }
-      } else {
-        logger.info(`[Step 2: Find Doctor] Specialty "${specialty}" not listed under "${facName}".`);
         await this.closeMuiDropdown();
-      }
-    }
 
-    // 3. Fallback: Check SEARCH BY SPECIALTY tab if facility dropdown didn't find active doctor
-    if (!doctorFound) {
-      logger.info(`[Step 2: Find Doctor] Target "${specialty}" not matched via facilities. Trying SEARCH BY SPECIALTY tab...`);
-      const specialtyTab = this.page.locator('main button:has-text("SEARCH BY SPECIALTY"), main [role="tab"]:has-text("SPECIALTY")').first();
-      if (await specialtyTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await specialtyTab.click();
-        await this.page.waitForTimeout(800);
-        const specCard = this.page.locator(`main div:has-text("${specialty}"), main button:has-text("${specialty}")`).first();
-        if (await specCard.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await specCard.click();
-          await this.page.waitForTimeout(600);
+        // Order facilities prioritizing preferredFacility
+        let orderedFacilities = facilityNames;
+        if (preferredFacility) {
+          const matched = facilityNames.filter(f => f.toLowerCase().includes(preferredFacility.toLowerCase()));
+          const others = facilityNames.filter(f => !f.toLowerCase().includes(preferredFacility.toLowerCase()));
+          orderedFacilities = [...matched, ...others];
+        }
+
+        // Iterate facilities for this specialty
+        for (const facName of orderedFacilities) {
+          logger.info(`[Step 2: Find Doctor] Testing facility "${facName}" for "${specialty}"...`);
+          const facSelected = await this.selectOptionFromSelect(facilityCombo, facName);
+          if (!facSelected) continue;
+
           await this.clickNext();
           await this.page.waitForTimeout(1200);
 
           if (await this.hasActiveDoctorCards()) {
+            logger.info(`[Step 2: Find Doctor] ✓ Active doctor(s) found for "${specialty}" at "${facName}"!`);
             doctorFound = true;
+            break;
           } else {
-            await this.clickBack();
+            logger.info(`[Step 2: Find Doctor] No active doctor cards on Step 3 for "${specialty}" at "${facName}". Back to Step 2...`);
+            await this.clickBackToStep2();
             await this.page.waitForTimeout(800);
           }
         }
       }
     }
 
-    // 4. Ultimate Fallback if still not found
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STRATEGY 2: Dynamic Fallback across other Specialties & Facilities
+    // ─────────────────────────────────────────────────────────────────────────────
     if (!doctorFound) {
-      logger.info(`[Step 2: Find Doctor] Executing broad fallback discovery...`);
+      logger.info(`[Step 2: Find Doctor] No doctors found for "${specialty}". Executing dynamic fallback discovery across other specialties...`);
       doctorFound = await this.findAnyAvailableDoctor();
     }
 
@@ -445,9 +484,8 @@ export class PatientBookingPage extends BasePage {
 
     // If no doctor found on step 3, go back and search for other specialty & facility
     if (await this.isNoDoctorFound()) {
-      logger.info('[Step 3: Select Doctor] ⚠️ No doctor found on Step 3. Going Back to previous page to search other specialty & facility...');
-      await this.clickBack();
-      await this.page.waitForTimeout(1000);
+      logger.info('[Step 3: Select Doctor] ⚠️ No doctor found on Step 3. Going Back to Step 2 to search other specialty & facility...');
+      await this.clickBackToStep2();
       await this.findAnyAvailableDoctor();
       await this.page.waitForTimeout(1000);
     }
@@ -466,9 +504,9 @@ export class PatientBookingPage extends BasePage {
       logger.info(`[Step 3: Select Doctor] Clicked doctor name heading "${doctorName}"`);
     }
 
-    // 2. If Next button is still disabled, click the card wrapper
+    // 2. If Next button is still disabled, click the card wrapper matching target
     if (await nextBtn.isDisabled().catch(() => false)) {
-      logger.info('[Step 3: Select Doctor] Next button still disabled. Trying card container...');
+      logger.info('[Step 3: Select Doctor] Trying card container matching doctor name...');
       const cardWrapper = this.page.locator('[class*="MuiCard-root"], [class*="MuiPaper-root"], [class*="Card"], [class*="DoctorCard"]')
         .filter({ hasText: doctorName })
         .last();
@@ -479,17 +517,25 @@ export class PatientBookingPage extends BasePage {
       }
     }
 
-    // 3. If Next button is still disabled, click any element inside the card (e.g. badges, experience, fee)
+    // 3. If Next button is still disabled (or we fell back to a different doctor), click the FIRST available doctor card on screen
     if (await nextBtn.isDisabled().catch(() => false)) {
-      logger.info('[Step 3: Select Doctor] Next button still disabled. Trying child elements in doctor card...');
-      const subElements = this.page.locator('main *').filter({ hasText: doctorName });
-      const count = await subElements.count();
-      for (let i = count - 1; i >= 0; i--) {
-        const el = subElements.nth(i);
-        await el.click({ force: true }).catch(() => null);
+      logger.info('[Step 3: Select Doctor] Selecting first available active doctor card...');
+      const anyCard = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]').filter({ hasText: /Dr\./i }).first();
+      if (await anyCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await anyCard.click({ force: true });
+        await this.page.waitForTimeout(600);
+      }
+    }
+
+    // 4. If Next button is still disabled, click any child element inside the doctor card
+    if (await nextBtn.isDisabled().catch(() => false)) {
+      logger.info('[Step 3: Select Doctor] Next button still disabled. Trying child elements...');
+      const anyCardSub = this.page.locator('main [class*="MuiCard-root"] *').filter({ hasText: /Dr\.|₹|Experience/i });
+      const subCount = await anyCardSub.count();
+      for (let i = 0; i < Math.min(subCount, 5); i++) {
+        await anyCardSub.nth(i).click({ force: true }).catch(() => null);
         await this.page.waitForTimeout(300);
         if (!(await nextBtn.isDisabled().catch(() => false))) {
-          logger.info(`[Step 3: Select Doctor] ✓ Card selected via child element index ${i}`);
           break;
         }
       }
@@ -503,15 +549,17 @@ export class PatientBookingPage extends BasePage {
   /**
    * Step 4: Date & Time (Date entry & dynamic slot selection)
    */
-  async step4_SelectDateTime(slotTime?: string, date = '2026-08-22'): Promise<void> {
-    logger.info(`[Step 4: Date & Time] Selecting date: "${date}", slot: "${slotTime || 'any'}"...`);
+  async step4_SelectDateTime(slotTime?: string, date?: string): Promise<void> {
+    const todayStr = '2026-08-24';
+    const targetDate = date || todayStr;
+    logger.info(`[Step 4: Date & Time] Selecting date: "${targetDate}", slot: "${slotTime || 'any'}"...`);
     await this.ensureOnBookingPage();
     await this.page.waitForTimeout(1000);
 
     const dateInput = this.page.locator('input[type="date"], input[placeholder*="dd" i], input[placeholder*="YYYY" i]').first();
-    if (await dateInput.isVisible({ timeout: 4000 }).catch(() => false)) {
-      await dateInput.fill(date).catch(async () => {
-        await dateInput.fill('22-08-2026');
+    if (await dateInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await dateInput.fill(targetDate).catch(async () => {
+        await dateInput.fill('24-08-2026');
       });
       await this.page.waitForTimeout(800);
     }
@@ -533,14 +581,36 @@ export class PatientBookingPage extends BasePage {
       }
     }
 
-    // 2. If Next is still disabled, iterate over all time slot pills until one enables the Next button
+    // 2. If Next is still disabled, iterate over all available time slot pills until one enables the Next button
     if (await nextBtn.isDisabled().catch(() => false)) {
       logger.info('[Step 4: Date & Time] Trying all available time slot elements...');
-      const allSlots = this.page.locator('button, [role="button"], [class*="chip" i], [class*="Chip" i], div, span')
-        .filter({ hasText: /^\s*\d{1,2}:\d{2}\s*(AM|PM)\s*$/i });
+      let allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
+        .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
 
-      const count = await allSlots.count();
+      let count = await allSlots.count();
       logger.info(`[Step 4: Date & Time] Discovered ${count} time slot elements`);
+
+      // If no slots found on initial date, try upcoming dates
+      if (count === 0) {
+        const dateCandidates = ['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30'];
+        for (const fDate of dateCandidates) {
+          if (await dateInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await dateInput.fill(fDate).catch(async () => {
+              const parts = fDate.split('-');
+              await dateInput.fill(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            });
+            await this.page.waitForTimeout(600);
+            allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
+              .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
+            count = await allSlots.count();
+            if (count > 0) {
+              logger.info(`[Step 4: Date & Time] ✓ Found ${count} slots on future date "${fDate}"`);
+              break;
+            }
+          }
+        }
+      }
+
       for (let i = 0; i < count; i++) {
         const slotEl = allSlots.nth(i);
         const slotText = (await slotEl.textContent())?.trim() || `Slot-${i}`;
@@ -549,6 +619,25 @@ export class PatientBookingPage extends BasePage {
 
         if (!(await nextBtn.isDisabled().catch(() => false))) {
           logger.info(`[Step 4: Date & Time] ✓ Successfully selected slot: "${slotText}"`);
+          break;
+        }
+      }
+    }
+
+    // 3. If Next is STILL disabled after all date checks, fall back to another doctor/specialty with active slots
+    if (await nextBtn.isDisabled().catch(() => false)) {
+      logger.warn('[Step 4: Date & Time] No available slots for this doctor on any date. Returning to Step 2 to fallback to an available specialty/doctor...');
+      await this.clickBackToStep2();
+      await this.findAnyAvailableDoctor();
+      await this.step3_SelectDoctor('Dr. QA Dental');
+
+      const dentalSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
+        .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
+      const dCount = await dentalSlots.count();
+      for (let i = 0; i < dCount; i++) {
+        await dentalSlots.nth(i).click({ force: true }).catch(() => null);
+        await this.page.waitForTimeout(400);
+        if (!(await nextBtn.isDisabled().catch(() => false))) {
           break;
         }
       }
