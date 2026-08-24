@@ -163,6 +163,21 @@
       "tag": "@generalsurgery"
     },
     {
+      "id": "TC_E2E_APPT_INFECTIOUS_DISEASE",
+      "specialtyName": "Infectious Disease",
+      "specialtySlug": "infectious-disease",
+      "doctorName": "Dr. QA Infectious Disease",
+      "staffUsername": "qa.infectiousdisease@omnivva.com",
+      "facility": "Omnivva Central Hospital",
+      "symptoms": "High fever, chills, and productive cough",
+      "upiId": "loki@upi",
+      "diagnosis": "Community-Acquired Pneumonia",
+      "icd10Code": "J18.9",
+      "treatmentPlan": "Oral Azithromycin 500mg daily, adequate hydration, follow up in 1 week.",
+      "doctorNotes": "Patient instructed on fever monitoring and respiratory etiquette.",
+      "tag": "@infectious-disease"
+    },
+    {
       "id": "TC_E2E_APPT_ENT",
       "specialtyName": "ENT",
       "specialtySlug": "ent",
