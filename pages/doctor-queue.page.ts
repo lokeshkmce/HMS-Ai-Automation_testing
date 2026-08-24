@@ -388,6 +388,20 @@ export class DoctorQueuePage extends BasePage {
       logger.info(`[Step 3] Filled Treatment Plan: "${treatmentPlan}"`);
     }
 
+    // 2b. Checkboxes (e.g. SABA, HRCT Chest, etc.)
+    if (data.checkboxes && Array.isArray(data.checkboxes)) {
+      for (const cbName of data.checkboxes) {
+        const cb = this.page.getByRole('checkbox', { name: new RegExp(cbName, 'i') })
+          .or(this.page.locator(`label:has-text("${cbName}") input[type="checkbox"]`))
+          .or(this.page.locator('label, span, div').filter({ hasText: new RegExp(`^${cbName}$`, 'i') }))
+          .first();
+        if (await cb.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await cb.click({ force: true }).catch(() => null);
+          await this.page.waitForTimeout(300);
+        }
+      }
+    }
+
     // 3. Add Prescription sub-flow
     await this.addPrescription(data.prescription);
 

@@ -568,18 +568,37 @@ export class PatientBookingPage extends BasePage {
   }
 
   /**
+   * Helper: Navigate back from Step 4 or Step 3 directly to Step 2 (Find Doctor)
+   */
+  async navigateBackToStep2(): Promise<void> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const onStep2 = await this.page.locator('button:has-text("SEARCH BY SPECIALTY"), [role="tab"]:has-text("SPECIALTY")').first().isVisible({ timeout: 400 }).catch(() => false);
+      if (onStep2) {
+        logger.info('[Navigation] ✓ Returned to Step 2 (Find Doctor)');
+        return;
+      }
+      const backBtn = this.page.locator('main button:has-text("Back"), main [role="button"]:has-text("Back")')
+        .or(this.page.getByRole('button', { name: /^Back$/i })).first();
+      if (await backBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await backBtn.click();
+        await this.page.waitForTimeout(600);
+      }
+    }
+  }
+
+  /**
    * Step 4: Date & Time (Date entry & dynamic slot selection)
-   * Cascade:
-   * 1. Try Today ("2026-08-24"), Tomorrow ("2026-08-25"), and upcoming dates across all Time-of-Day filters ("All", "Morning", "Afternoon", "Evening").
-   * 2. If no slots exist for the current doctor on any date, click Back to Step 3 and try the next doctor.
-   * 3. If all doctors in the current facility have no slots, click Back to Step 2 and try other hospital facilities.
+   * Immediate Cascade:
+   * 1. Try Today ("2026-08-24") and Tomorrow ("2026-08-25").
+   * 2. If no slots available, immediately go Back to Step 3 and try NEXT DOCTOR.
+   * 3. If all doctors have no slots, immediately go Back to Step 2 and choose ANOTHER HOSPITAL FACILITY.
    */
   async step4_SelectDateTime(slotTime?: string, date?: string): Promise<void> {
     const todayStr = '2026-08-24';
     const targetDate = date || todayStr;
     logger.info(`[Step 4: Date & Time] Selecting date: "${targetDate}", slot: "${slotTime || 'any'}"...`);
     await this.ensureOnBookingPage();
-    await this.page.waitForTimeout(800);
+    await this.page.waitForTimeout(500);
 
     const nextBtn = this.page.locator('main button:has-text("Next"), main button[type="submit"]')
       .or(this.page.getByRole('button', { name: /^Next$/i }))
@@ -593,66 +612,46 @@ export class PatientBookingPage extends BasePage {
       targetDate,
       '2026-08-25',
       '2026-08-26',
-      '2026-08-27',
-      '2026-08-28',
-      '2026-08-29',
-      '2026-08-30',
-      '2026-08-31',
-      '2026-09-01',
-      '2026-09-02',
-      '2026-09-03',
-      '2026-09-04',
-      '2026-09-05',
     ];
 
     const trySelectSlotOnCurrentDoctor = async (): Promise<boolean> => {
       const dateInput = this.page.locator('input[type="date"], input[placeholder*="dd" i], input[placeholder*="YYYY" i]').first();
 
       for (const curDate of dateCandidates) {
-        if (await dateInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+        if (await dateInput.isVisible({ timeout: 800 }).catch(() => false)) {
           await dateInput.fill(curDate).catch(async () => {
             const parts = curDate.split('-');
             await dateInput.fill(`${parts[2]}-${parts[1]}-${parts[0]}`).catch(() => null);
           });
-          await this.page.waitForTimeout(500);
+          await this.page.waitForTimeout(300);
         }
 
-        // Try time-of-day filters: "All" first, then "Morning", "Afternoon", "Evening"
-        const timeFilterPills = this.page.locator('main button, main [role="button"]').filter({ hasText: /All|Morning|Afternoon|Evening/i });
-        const pillCount = await timeFilterPills.count().catch(() => 0);
+        // Fast check: if slot chips exist, click the first one
+        const allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i]')
+          .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
+        const count = await allSlots.count().catch(() => 0);
 
-        for (let p = 0; p < Math.max(pillCount, 1); p++) {
-          if (pillCount > 0) {
-            await timeFilterPills.nth(p).click({ force: true }).catch(() => null);
-            await this.page.waitForTimeout(200);
-          }
-
-          const allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
-            .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
-          const count = await allSlots.count().catch(() => 0);
-
-          for (let i = 0; i < count; i++) {
-            await allSlots.nth(i).click({ force: true }).catch(() => null);
-            await this.page.waitForTimeout(300);
-            if (!(await nextBtn.isDisabled().catch(() => false))) {
-              logger.info(`[Step 4: Date & Time] ✓ Slot selected on date "${curDate}"`);
-              return true;
-            }
+        for (let i = 0; i < count; i++) {
+          await allSlots.nth(i).click({ force: true }).catch(() => null);
+          await this.page.waitForTimeout(200);
+          if (!(await nextBtn.isDisabled().catch(() => false))) {
+            logger.info(`[Step 4: Date & Time] ✓ Slot selected on date "${curDate}"`);
+            return true;
           }
         }
       }
       return !(await nextBtn.isDisabled().catch(() => false));
     };
 
-    // Phase 1: Try slots for current doctor across all dates
+    // Phase 1: Try slots on current doctor (Today / Tomorrow)
     let slotSelected = await trySelectSlotOnCurrentDoctor();
 
-    // Phase 2: If no slots, go Back to Step 3 and try next doctor in this specialty
+    // Phase 2: If no slots, go Back to Step 3 and try NEXT DOCTOR
     if (!slotSelected) {
-      logger.warn('[Step 4: Date & Time] No slots for primary doctor on any date. Trying other doctors in this specialty...');
-      if (await backBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      logger.warn('[Step 4: Date & Time] No slots for primary doctor. Going Back to Step 3 for next doctor...');
+      if (await backBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
         await backBtn.click();
-        await this.page.waitForTimeout(1000);
+        await this.page.waitForTimeout(600);
       }
 
       const allDoctorCards = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]')
@@ -662,11 +661,11 @@ export class PatientBookingPage extends BasePage {
       for (let d = 0; d < docCount; d++) {
         const card = allDoctorCards.nth(d);
         await card.click({ force: true }).catch(() => null);
-        await this.page.waitForTimeout(500);
+        await this.page.waitForTimeout(300);
 
         if (!(await nextBtn.isDisabled().catch(() => false))) {
           await this.clickNext();
-          await this.page.waitForTimeout(1000);
+          await this.page.waitForTimeout(800);
 
           slotSelected = await trySelectSlotOnCurrentDoctor();
           if (slotSelected) break;
@@ -674,31 +673,92 @@ export class PatientBookingPage extends BasePage {
           // If this doctor also has no slots, click back to Step 3
           if (await backBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
             await backBtn.click();
-            await this.page.waitForTimeout(800);
+            await this.page.waitForTimeout(600);
           }
         }
       }
     }
 
-    // Phase 3: If still no slots across all doctors, go Back to Step 2 and try other facilities
+    // Phase 3: If still no slots across all doctors in this facility, go Back to Step 2 and choose ANOTHER HOSPITAL FACILITY
     if (!slotSelected) {
-      logger.warn('[Step 4: Date & Time] No slots in current facility. Switching to other hospital facilities...');
-      await this.clickBackToStep2();
-      await this.findAnyAvailableDoctor();
-      await this.page.waitForTimeout(800);
+      logger.warn('[Step 4: Date & Time] No slots in current hospital. Returning to Step 2 to switch facility hospital...');
+      await this.navigateBackToStep2();
 
-      // We are now on Step 3 with a valid doctor card
-      const activeCards = this.page.locator('main [class*="MuiCard-root"], main div[class*="Card"], main [class*="DoctorCard"]').filter({ hasText: /Dr\./i });
-      if (await activeCards.first().isVisible({ timeout: 2000 }).catch(() => false)) {
-        await activeCards.first().click({ force: true });
-        await this.page.waitForTimeout(500);
-        await this.clickNext();
-        await this.page.waitForTimeout(1000);
-        slotSelected = await trySelectSlotOnCurrentDoctor();
+      // Switch to SEARCH BY SPECIALTY tab and choose next facility
+      const specTab = this.page.locator('button:has-text("SEARCH BY SPECIALTY"), [role="tab"]:has-text("SPECIALTY")').first();
+      if (await specTab.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await specTab.click();
+        await this.page.waitForTimeout(400);
+      }
+
+      const facilityCombo = this.page.locator('.MuiSelect-select').nth(2);
+      if (await facilityCombo.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await facilityCombo.click();
+        await this.page.waitForTimeout(400);
+
+        const facOptionEls = this.page.locator('li[role="option"], [role="option"]');
+        const facCount = await facOptionEls.count();
+        const facilityNames: string[] = [];
+        for (let i = 0; i < facCount; i++) {
+          const text = (await facOptionEls.nth(i).textContent())?.trim() || '';
+          if (text && !text.toLowerCase().includes('select facility')) {
+            facilityNames.push(text);
+          }
+        }
+        await this.closeMuiDropdown();
+
+        for (const fac of facilityNames) {
+          logger.info(`[Step 4: Date & Time] Switching to Hospital Facility: "${fac}"...`);
+          const selected = await this.selectOptionFromSelect(facilityCombo, fac);
+          if (!selected) continue;
+
+          await this.clickNext();
+          await this.page.waitForTimeout(1000);
+
+          if (await this.hasActiveDoctorCards()) {
+            const activeCards = this.page.locator('main [class*="MuiCard-root"], main div[class*="Card"], main [class*="DoctorCard"]').filter({ hasText: /Dr\./i });
+            const activeDocCount = await activeCards.count();
+            for (let ad = 0; ad < activeDocCount; ad++) {
+              await activeCards.nth(ad).click({ force: true }).catch(() => null);
+              await this.page.waitForTimeout(300);
+
+              if (!(await nextBtn.isDisabled().catch(() => false))) {
+                await this.clickNext();
+                await this.page.waitForTimeout(800);
+
+                slotSelected = await trySelectSlotOnCurrentDoctor();
+                if (slotSelected) break;
+
+                if (await backBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+                  await backBtn.click();
+                  await this.page.waitForTimeout(600);
+                }
+              }
+            }
+            if (slotSelected) break;
+          }
+
+          // If no active doctors or no slots in this facility, go back to Step 2
+          await this.navigateBackToStep2();
+        }
+      }
+
+      // Universal fallback if needed
+      if (!slotSelected) {
+        logger.info('[Step 4: Date & Time] Performing universal discovery fallback across all facilities...');
+        await this.findAnyAvailableDoctor();
+        const fallbackCards = this.page.locator('main [class*="MuiCard-root"], main div[class*="Card"], main [class*="DoctorCard"]').filter({ hasText: /Dr\./i });
+        if (await fallbackCards.first().isVisible({ timeout: 2000 }).catch(() => false)) {
+          await fallbackCards.first().click({ force: true });
+          await this.page.waitForTimeout(400);
+          await this.clickNext();
+          await this.page.waitForTimeout(800);
+          await trySelectSlotOnCurrentDoctor();
+        }
       }
     }
 
-    await this.page.waitForTimeout(600);
+    await this.page.waitForTimeout(500);
     await this.clickNext();
     logger.info('[Step 4: Date & Time] ✓ Completed step 4');
   }

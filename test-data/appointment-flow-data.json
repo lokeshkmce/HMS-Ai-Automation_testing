@@ -345,7 +345,20 @@
       "facility": "Omnivva Central Hospital",
       "symptoms": "Shortness of breath and chronic cough",
       "upiId": "loki@upi",
-      "diagnosis": "Mild Persistent Asthma",
+      "diagnosis": "Pulmonology issue",
+      "treatmentPlan": "Take pills",
+      "checkboxes": ["SABA", "HRCT Chest"],
+      "prescription": {
+        "drugQuery": "t",
+        "drugName": "Vitamin D3 1000IU",
+        "dosage": "1000IU",
+        "frequency": "1",
+        "clinicalAdvice": "Take daily"
+      },
+      "labTestName": "Blood Culture & Sensitivity",
+      "radiologyModality": "DEXA",
+      "radiologyScanName": "X-Ray Chest PA View",
+      "scheduleNextVisit": "2026-08-31",
       "tag": "@pulmonology"
     },
     {
