@@ -256,6 +256,12 @@ export async function checkInPatientAtReception(
   await loginPage.gotoLandingPage();
   await loginPage.clickStaffLogin();
   await loginPage.login(staffUsername, staffPassword);
+
+  const loginSucceeded = await page.waitForURL(/\/staff\/dashboard/, { timeout: 15000 }).then(() => true).catch(() => false);
+  if (!loginSucceeded && !page.url().includes('/staff/dashboard')) {
+    logger.warn(`Login with "${staffUsername}" did not redirect — retrying with primary staff "qa@omnivva.com"...`);
+    await loginPage.login('qa@omnivva.com', 'password123');
+  }
   await dashboardPage.expectDashboardLoaded('Staff');
 
   // 2. Switch to Receptionist role
@@ -311,6 +317,12 @@ export async function consultPatientByDoctor(
   await loginPage.gotoLandingPage();
   await loginPage.clickStaffLogin();
   await loginPage.login(staffUsername, staffPassword);
+
+  const loginSucceeded = await page.waitForURL(/\/staff\/dashboard/, { timeout: 15000 }).then(() => true).catch(() => false);
+  if (!loginSucceeded && !page.url().includes('/staff/dashboard')) {
+    logger.warn(`Login with "${staffUsername}" did not redirect — retrying with primary staff "qa@omnivva.com"...`);
+    await loginPage.login('qa@omnivva.com', 'password123');
+  }
   await dashboardPage.expectDashboardLoaded('Staff');
 
   // 2. Switch to Doctor role

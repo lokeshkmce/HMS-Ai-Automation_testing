@@ -117,6 +117,21 @@
       "tag": "@familymedicine"
     },
     {
+      "id": "TC_E2E_APPT_EMERGENCY_ENDOCRINOLOGY",
+      "specialtyName": "Emergency Endocrinology",
+      "specialtySlug": "emergency-endo",
+      "doctorName": "Dr. QA Emergency Endocrinology",
+      "staffUsername": "qa.emergency.endocrinology@omnivva.com",
+      "facility": "Omnivva Central Hospital",
+      "symptoms": "Severe fatigue, altered glucose levels and dehydration",
+      "upiId": "loki@upi",
+      "diagnosis": "Diabetic Ketoacidosis / Endocrine Crisis",
+      "icd10Code": "E10.10",
+      "treatmentPlan": "IV fluids, regular insulin infusion protocol, close electrolyte monitoring.",
+      "doctorNotes": "Admitted to endocrine intensive observation unit for continuous blood sugar charting.",
+      "tag": "@emergency-endo"
+    },
+    {
       "id": "TC_E2E_APPT_ENT",
       "specialtyName": "ENT",
       "specialtySlug": "ent",
