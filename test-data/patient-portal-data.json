@@ -1,0 +1,39 @@
+{
+  "_comment": "Patient Portal Test Data — Valid and Invalid Login Data and Dashboard Navigation Elements",
+
+  "validLogin": {
+    "id": "TC_PATIENT_LOGIN_VALID",
+    "email": "patient.test@gmail.com",
+    "otp": "0000",
+    "description": "Patient login with valid email and OTP code lands on /patient dashboard",
+    "expectedUrl": "/patient",
+    "tag": "@smoke @patient"
+  },
+
+  "invalidLogins": [
+    {
+      "id": "TC_PATIENT_LOGIN_INV_OTP",
+      "email": "patient.test@gmail.com",
+      "otp": "9999",
+      "description": "Patient login with invalid OTP code is rejected",
+      "expectedResult": "error",
+      "tag": "@regression @patient"
+    },
+    {
+      "id": "TC_PATIENT_LOGIN_INV_EMAIL",
+      "email": "invalid-patient-email",
+      "otp": "0000",
+      "description": "Invalid email format is rejected before OTP step",
+      "expectedResult": "error",
+      "tag": "@regression @patient"
+    }
+  ],
+
+  "patientMenus": [
+    { "name": "Welcome to Omnivva Patient Portal", "type": "heading" },
+    { "name": "Book Doctor", "type": "card" },
+    { "name": "Book Lab", "type": "card" },
+    { "name": "Pharmacy", "type": "card" },
+    { "name": "Go to Dashboard", "type": "button" }
+  ]
+}

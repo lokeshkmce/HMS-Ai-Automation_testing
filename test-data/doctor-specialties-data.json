@@ -1,0 +1,270 @@
+{
+  "suite": "Omnivva HMS — Specialty-Wise Doctor Portal Login & Dashboard Validation",
+  "environment": "dev",
+  "defaultPassword": "password123",
+
+  "invalidLogins": [
+    {
+      "id": "TC_DOC_LOGIN_INV_PASSWORD",
+      "specialtyName": "Neurosurgery",
+      "username": "qa.neurosurgery@omnivva.com",
+      "password": "WrongPassword999!",
+      "description": "Valid doctor email with incorrect password shows error and rejects login",
+      "expectedResult": "error",
+      "tag": "@smoke @regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_USER",
+      "specialtyName": "Unknown Specialty",
+      "username": "nonexistent.doctor@omnivva.com",
+      "password": "password123",
+      "description": "Non-existent doctor account shows error and rejects login",
+      "expectedResult": "error",
+      "tag": "@regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_EMPTY",
+      "specialtyName": "Empty Fields",
+      "username": "",
+      "password": "",
+      "description": "Empty doctor username and password fields show validation error",
+      "expectedResult": "validation_error",
+      "tag": "@regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_FORMAT",
+      "specialtyName": "Invalid Format",
+      "username": "qa.cardiosurgery.invalid-email",
+      "password": "password123",
+      "description": "Invalid doctor email format is rejected",
+      "expectedResult": "error",
+      "tag": "@regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_SQLI",
+      "specialtyName": "Security SQLi",
+      "username": "' OR '1'='1",
+      "password": "' OR '1'='1",
+      "description": "SQL Injection attempt in doctor login fields is rejected safely",
+      "expectedResult": "error",
+      "tag": "@security @regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_XSS",
+      "specialtyName": "Security XSS",
+      "username": "<script>alert('xss-doc')</script>",
+      "password": "password123",
+      "description": "XSS payload in doctor login username is sanitized and rejected",
+      "expectedResult": "error",
+      "tag": "@security @regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_DOMAIN",
+      "specialtyName": "Wrong Domain",
+      "username": "qa.neurology@unauthorized-external-domain.com",
+      "password": "password123",
+      "description": "Doctor login attempt from unauthorized external domain is rejected",
+      "expectedResult": "error",
+      "tag": "@security @regression @negative"
+    },
+    {
+      "id": "TC_DOC_LOGIN_INV_SPECIAL_CHARS",
+      "specialtyName": "Special Characters",
+      "username": "qa.cardio!#$%^&*@omnivva.com",
+      "password": "password123",
+      "description": "Doctor username containing invalid special characters is rejected",
+      "expectedResult": "error",
+      "tag": "@security @regression @negative"
+    }
+  ],
+
+  "validSpecialties": [
+    {
+      "id": "SPEC_CARDIO_SURGERY",
+      "specialtyName": "Cardio Surgery",
+      "specialtySlug": "cardio-surgery",
+      "username": "qa.cardiosurgery@omnivva.com",
+      "password": "password123",
+      "description": "Cardio Surgery Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_DENTAL",
+      "specialtyName": "Dental",
+      "specialtySlug": "dental",
+      "username": "qa.dental@omnivva.com",
+      "password": "password123",
+      "description": "Dental Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_ENT",
+      "specialtyName": "ENT",
+      "specialtySlug": "ent",
+      "username": "qa.ent@omnivva.com",
+      "password": "password123",
+      "description": "ENT Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_FAMILY_MEDICINE",
+      "specialtyName": "Family Medicine",
+      "specialtySlug": "family-medicine",
+      "username": "qa.family@omnivva.com",
+      "altUsername": "qa.family@ominvva.com",
+      "password": "password123",
+      "description": "Family Medicine Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_GASTRO",
+      "specialtyName": "Gastroenterology",
+      "specialtySlug": "gastro",
+      "username": "qa.gastro@omnivva.com",
+      "altUsername": "qa.gastro@ominvva.com",
+      "password": "password123",
+      "description": "Gastro Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_DERMA",
+      "specialtyName": "Dermatology",
+      "specialtySlug": "derma",
+      "username": "qa.derma@omnivva.com",
+      "password": "password123",
+      "description": "Dermatology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_EMERGENCY_ENDO",
+      "specialtyName": "Emergency Endocrinology",
+      "specialtySlug": "emergency-endo",
+      "username": "qa.emergency.endo@omnivva.com",
+      "password": "password123",
+      "description": "Emergency Endocrinology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_GENERAL_SURGERY",
+      "specialtyName": "General Surgery",
+      "specialtySlug": "generalsurgery",
+      "username": "qa.generalsurgery@omnivva.com",
+      "password": "password123",
+      "description": "General Surgery Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_INFECTIOUS_DISEASE",
+      "specialtyName": "Infectious Disease",
+      "specialtySlug": "infectious-disease",
+      "username": "qa.infectious.disease@omnivva.com",
+      "password": "password123",
+      "description": "Infectious Disease Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_INTERNAL_MEDICINE",
+      "specialtyName": "Internal Medicine",
+      "specialtySlug": "internal-medicine",
+      "username": "qa.internal.medicine@omnivva.com",
+      "password": "password123",
+      "description": "Internal Medicine Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_MATERNITY",
+      "specialtyName": "Maternity",
+      "specialtySlug": "maternity",
+      "username": "qa.maternity@omnivva.com",
+      "password": "password123",
+      "description": "Maternity Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_NEPHROLOGY",
+      "specialtyName": "Nephrology",
+      "specialtySlug": "nephrology",
+      "username": "qa.nephrology@omnivva.com",
+      "password": "password123",
+      "description": "Nephrology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_NEUROLOGY",
+      "specialtyName": "Neurology",
+      "specialtySlug": "neurology",
+      "username": "qa.neurology@omnivva.com",
+      "password": "password123",
+      "description": "Neurology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_NEUROSURGERY",
+      "specialtyName": "Neurosurgery",
+      "specialtySlug": "neurosurgery",
+      "username": "qa.neurosurgery@omnivva.com",
+      "password": "password123",
+      "description": "Neurosurgery Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_ONCOLOGY",
+      "specialtyName": "Oncology",
+      "specialtySlug": "oncology",
+      "username": "qa.oncology@omnivva.com",
+      "password": "password123",
+      "description": "Oncology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_OPHTHALMOLOGY",
+      "specialtyName": "Ophthalmology",
+      "specialtySlug": "opthalmology",
+      "username": "qa.opthalmology@omnivva.com",
+      "password": "password123",
+      "description": "Ophthalmology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_ORTHOPEDICS",
+      "specialtyName": "Orthopedics",
+      "specialtySlug": "orthopedics",
+      "username": "qa.orthopedics@omnivva.com",
+      "altUsername": "qa.ortho@omnivva.com",
+      "password": "password123",
+      "description": "Orthopedics Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_PLASTIC_SURGERY",
+      "specialtyName": "Plastic Surgery",
+      "specialtySlug": "plastic-surgery",
+      "username": "qa.plastic.surgery@omnivva.com",
+      "password": "password123",
+      "description": "Plastic Surgery Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_PSYCHIATRY",
+      "specialtyName": "Psychiatry",
+      "specialtySlug": "psychiatry",
+      "username": "qa.psychiatry@omnivva.com",
+      "password": "password123",
+      "description": "Psychiatry Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_PULMONOLOGY",
+      "specialtyName": "Pulmonology",
+      "specialtySlug": "pulmonology",
+      "username": "qa.pulmonology@omnivva.com",
+      "password": "password123",
+      "description": "Pulmonology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_RHEUMATOLOGY",
+      "specialtyName": "Rheumatology",
+      "specialtySlug": "rheumatology",
+      "username": "qa.rheumatology@omnivva.com",
+      "password": "password123",
+      "description": "Rheumatology Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_PMR_REHAB",
+      "specialtyName": "PMR and Rehab",
+      "specialtySlug": "pmr-rehab",
+      "username": "qa.pmr.rehab@omnivva.com",
+      "password": "password123",
+      "description": "PMR and Rehab Doctor login and dashboard validation"
+    },
+    {
+      "id": "SPEC_UROLOGY",
+      "specialtyName": "Urology",
+      "specialtySlug": "urology",
+      "username": "qa.urology@omnivva.com",
+      "password": "password123",
+      "description": "Urology Doctor login and dashboard validation"
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "_comment": "Staff Portal Test Data — Valid and Invalid Login Data, 13 Roles, and Navigation Menus",
+
+  "validLogin": {
+    "id": "TC_STAFF_LOGIN_VALID",
+    "username": "qa@omnivva.com",
+    "passwordEnvKey": "QA_PASSWORD_ALL_ROLES",
+    "description": "Valid login with QA superuser credentials lands on /staff/dashboard",
+    "expectedUrl": "/staff/dashboard",
+    "tag": "@smoke @staff"
+  },
+
+  "invalidLogins": [
+    {
+      "id": "TC_STAFF_LOGIN_INV_PASSWORD",
+      "username": "qa@omnivva.com",
+      "password": "WrongPassword999!",
+      "description": "Valid username with incorrect password shows error and rejects login",
+      "expectedResult": "error",
+      "tag": "@smoke @regression"
+    },
+    {
+      "id": "TC_STAFF_LOGIN_INV_USER",
+      "username": "nonexistent.staff@omnivva.com",
+      "password": "password123",
+      "description": "Non-existent user account shows error and rejects login",
+      "expectedResult": "error",
+      "tag": "@regression"
+    },
+    {
+      "id": "TC_STAFF_LOGIN_INV_EMPTY",
+      "username": "",
+      "password": "",
+      "description": "Empty username and password fields show validation error",
+      "expectedResult": "validation_error",
+      "tag": "@regression"
+    },
+    {
+      "id": "TC_STAFF_LOGIN_INV_FORMAT",
+      "username": "invalid-email-format",
+      "password": "password123",
+      "description": "Invalid email/username format is rejected",
+      "expectedResult": "error",
+      "tag": "@regression"
+    },
+    {
+      "id": "TC_STAFF_LOGIN_INV_SQLI",
+      "username": "' OR '1'='1",
+      "password": "' OR '1'='1",
+      "description": "SQL Injection attempt in login fields is rejected safely",
+      "expectedResult": "error",
+      "tag": "@security @regression"
+    },
+    {
+      "id": "TC_STAFF_LOGIN_INV_XSS",
+      "username": "<script>alert('xss')</script>",
+      "password": "password123",
+      "description": "XSS payload in login username field is sanitized and rejected",
+      "expectedResult": "error",
+      "tag": "@security @regression"
+    }
+  ],
+
+  "roles": [
+    {
+      "role": "Admin",
+      "description": "Comprehensive Admin portal navigation menu items verification",
+      "menus": [
+        "Admission", "Rx Onboarding", "Admissions", "OT Master", "Surgery Master",
+        "Bookings", "Calendar", "Checklist", "Workflow", "Recovery Room",
+        "Equipment", "Reports", "Assessments", "Rounds Dashboard", "Case Sheet",
+        "Nursing Dashboard", "Vital Entry", "Medication Dashboard", "Orders Dashboard",
+        "Lab Dashboard", "Radiology Dashboard", "Referral Dashboard", "Document Dashboard",
+        "Billing Dashboard", "Discharge Dashboard"
+      ]
+    },
+    {
+      "role": "Billing Clerk",
+      "description": "Billing Clerk portal navigation menu items verification",
+      "menus": [
+        "Financial & Billing", "Document Dashboard", "Billing Dashboard", "Discharge Dashboard"
+      ]
+    },
+    {
+      "role": "Doctor",
+      "description": "Comprehensive Doctor portal navigation menu items verification",
+      "menus": [
+        "Admission", "Dashboard", "Laboratory", "My Schedule", "Patients",
+        "Appointments", "IPD", "Clinic Associations", "Doctor Console", "Consultations",
+        "Patient Questions", "Telemedicine", "Analytics", "Admissions", "Bookings",
+        "Calendar", "Checklist", "Workflow", "Recovery Room", "Equipment",
+        "Reports", "Assessments", "Rounds Dashboard", "Case Sheet", "Nursing Dashboard",
+        "Critical Alerts", "Medication Dashboard", "Orders Dashboard", "Lab Dashboard",
+        "Radiology Dashboard", "Referral Dashboard", "Document Dashboard", "Discharge Dashboard"
+      ]
+    },
+    {
+      "role": "Group Admin",
+      "description": "Comprehensive Group Admin portal navigation menu items verification",
+      "menus": [
+        "Dashboard", "User Management", "Clinicians", "Department", "Role Management",
+        "Organization Management", "Specialities", "Operational Setup", "License & Compliance",
+        "Admin", "Infrastructure", "User Role Management", "Hospital Onboarding",
+        "Address & Location", "Lab Onboarding", "Pharmacy Onboarding", "Rx Onboarding"
+      ]
+    },
+    {
+      "role": "Ipd Admin",
+      "description": "IPD Admin portal navigation menu items verification",
+      "menus": [
+        "Bed Allocation", "Admission", "Discharge Dashboard"
+      ]
+    },
+    {
+      "role": "Lab Technician",
+      "description": "Lab Technician portal navigation menu items verification",
+      "menus": [
+        "Dashboard", "Laboratory", "Orders Dashboard", "Lab Dashboard"
+      ]
+    },
+    {
+      "role": "Mrd",
+      "description": "MRD portal navigation menu items verification",
+      "menus": [
+        "Case Sheet", "Referral Dashboard", "Document Dashboard"
+      ]
+    },
+    {
+      "role": "Nurse",
+      "description": "Comprehensive Nurse portal navigation menu items verification",
+      "menus": [
+        "Admission", "Dashboard", "Patients", "Appointments", "IPD",
+        "Infrastructure", "Admissions", "Bookings", "Calendar", "Checklist",
+        "Workflow", "Recovery Room", "Equipment", "Reports", "Assessments",
+        "Rounds Dashboard", "Case Sheet", "Nursing Dashboard", "Vital Entry",
+        "Medication Dashboard", "Orders Dashboard", "Lab Dashboard", "Radiology Dashboard",
+        "Referral Dashboard", "Document Dashboard", "Discharge Dashboard", "PRIMARY WARD CARE"
+      ]
+    },
+    {
+      "role": "Org Admin",
+      "description": "Comprehensive Org Admin portal navigation menu items verification",
+      "menus": [
+        "Omnivva Health Systems", "Dashboard", "User Management", "Clinicians", "Department",
+        "Role Management", "Organization Management", "Specialities", "Operational Setup",
+        "License & Compliance", "Admin", "Infrastructure", "User Role Management",
+        "Hospital Onboarding", "Address & Location", "Lab Onboarding", "Pharmacy Onboarding",
+        "Rx Onboarding", "Reports"
+      ]
+    },
+    {
+      "role": "Ot Coordinator",
+      "description": "OT Coordinator portal navigation menu items verification",
+      "menus": [
+        "IPD (Preview)"
+      ]
+    },
+    {
+      "role": "Pharmacist",
+      "description": "Comprehensive Pharmacist portal navigation menu items verification",
+      "menus": [
+        "Dashboard", "Dispensing", "Inventory Config", "Operational Setup",
+        "License & Compliance", "User Role Management", "Address & Location",
+        "Medication Dashboard", "Orders Dashboard", "Discharge Dashboard"
+      ]
+    },
+    {
+      "role": "Radiologist",
+      "description": "Radiology portal navigation menu items verification",
+      "menus": [
+        "Orders Dashboard", "Radiology Dashboard"
+      ]
+    },
+    {
+      "role": "Receptionist",
+      "description": "Comprehensive Reception portal navigation menu items verification",
+      "menus": [
+        "Omnivva Health Systems", "Dashboard", "Admission", "Appointment Booking",
+        "Doctor Listing", "Slot Selection", "Patient Registration", "Pre-Consultation Form",
+        "Token Generation", "Infrastructure", "Check-In Screen", "Live Queue Display",
+        "Patient Care Assistant", "Doctor Queue", "Doctor Consultation", "ePrescription",
+        "Lab & Radiology Orders", "Admissions", "Document Dashboard", "Billing Dashboard"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "_comment": "Test data for JSONPlaceholder /posts endpoint (JSONPlaceholder /users is read-only). Using /posts for CRUD tests which supports create/update/delete properly.",
+  "createPost": {
+    "title": "Automated Test Post",
+    "body": "This post was created by the QA automation framework.",
+    "userId": 1
+  },
+  "updatePost": {
+    "title": "Updated Test Post",
+    "body": "This post was updated by the QA automation framework.",
+    "userId": 1
+  }
+}

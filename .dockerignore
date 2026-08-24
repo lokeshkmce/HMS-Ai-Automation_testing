@@ -1,0 +1,13 @@
+node_modules
+dist
+reports
+.auth
+.git
+.env
+*.log
+
+# Exclude environment files that may contain credentials
+# These must be injected at runtime via environment variables, not baked into the image
+config/env/.env.dev
+config/env/.env.qa
+config/env/.env.prod

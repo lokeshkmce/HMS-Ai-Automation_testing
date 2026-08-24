@@ -1,0 +1,13 @@
+node_modules/
+dist/
+reports/
+.auth/
+.env
+*.log
+test-results/
+blob-report/
+playwright/.cache/
+jdk17/
+allure-results/
+allure-report/
+

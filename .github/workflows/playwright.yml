@@ -1,0 +1,136 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Test tag to run (e.g. @smoke, @regression, @security)'
+        required: false
+        default: ''
+      test_env:
+        description: 'Target environment (dev | qa | prod)'
+        required: false
+        default: 'qa'
+
+jobs:
+  test:
+    name: Run Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Set the working directory to where the real package.json lives
+    defaults:
+      run:
+        working-directory: automation-test-framework-main
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: automation-test-framework-main/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run Playwright tests
+        env:
+          TEST_ENV: ${{ github.event.inputs.test_env || 'qa' }}
+          # Role passwords injected from GitHub repository secrets
+          QA_PASSWORD_DOCTOR: ${{ secrets.QA_PASSWORD_DOCTOR }}
+          QA_PASSWORD_NURSE: ${{ secrets.QA_PASSWORD_NURSE }}
+          QA_PASSWORD_RECEPTION: ${{ secrets.QA_PASSWORD_RECEPTION }}
+          QA_PASSWORD_BILLING: ${{ secrets.QA_PASSWORD_BILLING }}
+          QA_PASSWORD_LABORATORY: ${{ secrets.QA_PASSWORD_LABORATORY }}
+          QA_PASSWORD_RADIOLOGY: ${{ secrets.QA_PASSWORD_RADIOLOGY }}
+          QA_PASSWORD_PHARMACY: ${{ secrets.QA_PASSWORD_PHARMACY }}
+          QA_PASSWORD_ADMINISTRATION: ${{ secrets.QA_PASSWORD_ADMINISTRATION }}
+          QA_PASSWORD_GROUP_ADMIN: ${{ secrets.QA_PASSWORD_GROUP_ADMIN }}
+        run: |
+          GREP_FLAG=""
+          if [ -n "${{ github.event.inputs.test_tag }}" ]; then
+            GREP_FLAG="--grep ${{ github.event.inputs.test_tag }}"
+          fi
+          npx playwright test $GREP_FLAG --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-report-shard-${{ matrix.shardIndex }}
+          path: automation-test-framework-main/reports/html/
+          retention-days: 14
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-shard-${{ matrix.shardIndex }}
+          path: automation-test-framework-main/reports/allure-results/
+          retention-days: 14
+
+      - name: Upload test artifacts on failure (traces, screenshots, videos)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts-shard-${{ matrix.shardIndex }}
+          path: automation-test-framework-main/reports/test-results/
+          retention-days: 7
+
+  allure-report:
+    name: Generate & Publish Allure Report
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: automation-test-framework-main
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: automation-test-framework-main/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all Allure results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-shard-*
+          path: automation-test-framework-main/reports/allure-results
+          merge-multiple: true
+
+      - name: Generate Allure report
+        run: npx allure generate reports/allure-results -o reports/allure-report --clean
+
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: automation-test-framework-main/reports/allure-report/
+          retention-days: 14

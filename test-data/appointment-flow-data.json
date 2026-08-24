@@ -1,0 +1,330 @@
+{
+  "suite": "Omnivva HMS — Multi-Role End-to-End Appointment Booking & Check-in",
+  "environment": "dev",
+  "patient": {
+    "email": "patient.test@gmail.com",
+    "otp": "0000",
+    "firstName": "Test",
+    "lastName": "Patient",
+    "phone": "9876545671",
+    "patientEmail": "qa@omnivva.com"
+  },
+  "staff": {
+    "username": "qa@omnivva.com",
+    "password": "password123",
+    "roles": {
+      "receptionist": "Receptionist",
+      "doctor": "Doctor"
+    }
+  },
+  "booking": {
+    "visitType": "In-Person Visit",
+    "reasonForVisit": "Routine Checkup",
+    "city": "All Cities",
+    "facility": "LifeLine Super Specialty",
+    "specialty": "Neurology",
+    "doctorName": "Dr. QA Neurology",
+    "experienceFilter": "All",
+    "slotTime": "10:20 AM",
+    "symptoms": "Chronic migraine and dizziness",
+    "additionalNotes": "Patient experiencing headache since morning",
+    "paymentMethod": "UPI / QR",
+    "upiId": "lokeshkslm2001@gmail.com",
+    "fee": "₹500.00"
+  },
+  "consultation": {
+    "staffUsername": "qa.neurology@omnivva.com",
+    "patientName": "Test Patient",
+    "tokenPrefix": "C-",
+    "diagnosis": "Migraine with aura",
+    "icd10Code": "G43.909",
+    "treatmentPlan": "Tab Naproxen 500mg SOS, sleep hygiene, avoid migraine triggers.",
+    "imagingFindings": "MRI Brain: No acute intracranial abnormality or structural lesion.",
+    "doctorNotes": "Patient counseled on diagnosis, medication adherence, and red-flag symptoms. Advised routine follow-up.",
+    "referredBy": "Self / Dr. Referral",
+    "plan": "Conservative Medical Management",
+    "injection": "None",
+    "scheduleNextVisit": "26-08-2026",
+    "wizardNextClicks": 2
+  },
+  "specialties": [
+    {
+      "id": "TC_E2E_APPT_CARDIO_SURGERY",
+      "specialtyName": "Cardio Surgery",
+      "specialtySlug": "cardio-surgery",
+      "doctorName": "Dr. QA Cardio Surgery",
+      "staffUsername": "qa.cardiosurgery@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Chest pain and palpitations",
+      "diagnosis": "Mild Angina",
+      "icd10Code": "I20.8",
+      "treatmentPlan": "Tab Aspirin 75mg OD, Tab Atorvastatin 20mg HS, ECG review in 1 week.",
+      "imagingFindings": "Echo: Normal LV systolic function, no wall motion abnormalities.",
+      "doctorNotes": "Advised cardiac diet and lifestyle modifications. Review if symptoms worsen.",
+      "tag": "@cardiosurgery"
+    },
+    {
+      "id": "TC_E2E_APPT_DENTAL",
+      "specialtyName": "Dental",
+      "specialtySlug": "dental",
+      "doctorName": "Dr. QA Dental",
+      "staffUsername": "qa.dental@omnivva.com",
+      "facility": "MedCare General Hospital",
+      "symptoms": "Teeth pain",
+      "upiId": "loki@upi",
+      "diagnosis": "Tooth decay",
+      "treatmentPlan": "Doing root canal ",
+      "procedure": "Extraction",
+      "quantityOrDays": "5",
+      "scheduleNextVisit": "2026-08-26",
+      "prescription": {
+        "drugQuery": "T",
+        "drugName": "Cetirizine 10mg",
+        "dosage": "100",
+        "frequency": "½",
+        "clinicalAdvice": "Use hot water "
+      },
+      "tag": "@dental"
+    },
+    {
+      "id": "TC_E2E_APPT_ENT",
+      "specialtyName": "ENT",
+      "specialtySlug": "ent",
+      "doctorName": "Dr. QA ENT",
+      "staffUsername": "qa.ent@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Throat pain and ear blockage",
+      "diagnosis": "Acute Pharyngitis",
+      "tag": "@ent"
+    },
+    {
+      "id": "TC_E2E_APPT_FAMILY_MEDICINE",
+      "specialtyName": "Family Medicine",
+      "specialtySlug": "family-medicine",
+      "doctorName": "Dr. QA Family Medicine",
+      "staffUsername": "qa.family@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "General malaise and seasonal allergies",
+      "diagnosis": "Viral Rhinitis",
+      "tag": "@family-medicine"
+    },
+    {
+      "id": "TC_E2E_APPT_GASTRO",
+      "specialtyName": "Gastroenterology",
+      "specialtySlug": "gastro",
+      "doctorName": "Dr. QA Gastroenterology",
+      "staffUsername": "qa.gastro@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Abdominal discomfort and acid reflux",
+      "diagnosis": "Gastroesophageal Reflux Disease",
+      "tag": "@gastro"
+    },
+    {
+      "id": "TC_E2E_APPT_DERMA",
+      "specialtyName": "Dermatology",
+      "specialtySlug": "derma",
+      "doctorName": "Dr. QA Dermatology",
+      "staffUsername": "qa.derma@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Skin rash and itching",
+      "diagnosis": "Contact Dermatitis",
+      "tag": "@derma"
+    },
+    {
+      "id": "TC_E2E_APPT_EMERGENCY_ENDO",
+      "specialtyName": "Emergency Endocrinology",
+      "specialtySlug": "emergency-endo",
+      "doctorName": "Dr. QA Emergency Endocrinology",
+      "staffUsername": "qa.emergency.endo@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "High blood glucose levels and fatigue",
+      "diagnosis": "Type 2 Diabetes Mellitus Checkup",
+      "tag": "@emergency-endo"
+    },
+    {
+      "id": "TC_E2E_APPT_GENERAL_SURGERY",
+      "specialtyName": "General Surgery",
+      "specialtySlug": "generalsurgery",
+      "doctorName": "Dr. QA General Surgery",
+      "staffUsername": "qa.generalsurgery@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Localized abdominal swelling",
+      "diagnosis": "Pre-Op Surgical Evaluation",
+      "tag": "@generalsurgery"
+    },
+    {
+      "id": "TC_E2E_APPT_INFECTIOUS_DISEASE",
+      "specialtyName": "Infectious Disease",
+      "specialtySlug": "infectious-disease",
+      "doctorName": "Dr. QA Infectious Disease",
+      "staffUsername": "qa.infectious.disease@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Persistent high grade fever and body chills",
+      "diagnosis": "Post-Viral Syndrome",
+      "tag": "@infectious-disease"
+    },
+    {
+      "id": "TC_E2E_APPT_INTERNAL_MEDICINE",
+      "specialtyName": "Internal Medicine",
+      "specialtySlug": "internal-medicine",
+      "doctorName": "Dr. QA Internal Medicine",
+      "staffUsername": "qa.internal.medicine@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Fatigue and elevated blood pressure",
+      "diagnosis": "Primary Hypertension",
+      "tag": "@internal-medicine"
+    },
+    {
+      "id": "TC_E2E_APPT_MATERNITY",
+      "specialtyName": "Maternity",
+      "specialtySlug": "maternity",
+      "doctorName": "Dr. QA Maternity",
+      "staffUsername": "qa.maternity@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Routine prenatal wellness consultation",
+      "diagnosis": "Antenatal Trimester Screening",
+      "tag": "@maternity"
+    },
+    {
+      "id": "TC_E2E_APPT_NEPHROLOGY",
+      "specialtyName": "Nephrology",
+      "specialtySlug": "nephrology",
+      "doctorName": "Dr. QA Nephrology",
+      "staffUsername": "qa.nephrology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Swelling in lower extremities and flank ache",
+      "diagnosis": "Chronic Kidney Disease Stage 1 Follow-up",
+      "tag": "@nephrology"
+    },
+    {
+      "id": "TC_E2E_APPT_NEUROLOGY",
+      "specialtyName": "Neurology",
+      "specialtySlug": "neurology",
+      "doctorName": "Dr. QA Neurology",
+      "staffUsername": "qa.neurology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Chronic migraine and dizziness",
+      "diagnosis": "Migraine with aura",
+      "tag": "@neurology @smoke @critical"
+    },
+    {
+      "id": "TC_E2E_APPT_NEUROSURGERY",
+      "specialtyName": "Neurosurgery",
+      "specialtySlug": "neurosurgery",
+      "doctorName": "Dr. QA Neurosurgery",
+      "staffUsername": "qa.neurosurgery@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Severe back pain and radiating numbness",
+      "diagnosis": "Lumbar Radiculopathy",
+      "tag": "@neurosurgery"
+    },
+    {
+      "id": "TC_E2E_APPT_ONCOLOGY",
+      "specialtyName": "Oncology",
+      "specialtySlug": "oncology",
+      "doctorName": "Dr. QA Oncology",
+      "staffUsername": "qa.oncology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Routine oncology follow-up consultation",
+      "diagnosis": "Oncology Maintenance Surveillance",
+      "tag": "@oncology"
+    },
+    {
+      "id": "TC_E2E_APPT_OPHTHALMOLOGY",
+      "specialtyName": "Ophthalmology",
+      "specialtySlug": "opthalmology",
+      "doctorName": "Dr. QA Ophthalmology",
+      "staffUsername": "qa.opthalmology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Blurred vision and eye strain",
+      "diagnosis": "Refractive Error",
+      "tag": "@ophthalmology"
+    },
+    {
+      "id": "TC_E2E_APPT_ORTHOPEDICS",
+      "specialtyName": "Orthopedics",
+      "specialtySlug": "orthopedics",
+      "doctorName": "Dr. QA Orthopedics",
+      "staffUsername": "qa.orthopedics@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Joint stiffness and knee pain",
+      "diagnosis": "Osteoarthritis Knee",
+      "tag": "@orthopedics"
+    },
+    {
+      "id": "TC_E2E_APPT_PLASTIC_SURGERY",
+      "specialtyName": "Plastic Surgery",
+      "specialtySlug": "plastic-surgery",
+      "doctorName": "Dr. QA Plastic Surgery",
+      "staffUsername": "qa.plastic.surgery@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Scar revision evaluation",
+      "diagnosis": "Post-Traumatic Scar Assessment",
+      "tag": "@plastic-surgery"
+    },
+    {
+      "id": "TC_E2E_APPT_PSYCHIATRY",
+      "specialtyName": "Psychiatry",
+      "specialtySlug": "psychiatry",
+      "doctorName": "Dr. QA Psychiatry",
+      "staffUsername": "qa.psychiatry@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Sleep disturbance and anxiety",
+      "diagnosis": "Generalized Anxiety Disorder",
+      "tag": "@psychiatry"
+    },
+    {
+      "id": "TC_E2E_APPT_PULMONOLOGY",
+      "specialtyName": "Pulmonology",
+      "specialtySlug": "pulmonology",
+      "doctorName": "Dr. QA Pulmonology",
+      "staffUsername": "qa.pulmonology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Shortness of breath and chronic cough",
+      "diagnosis": "Mild Persistent Asthma",
+      "tag": "@pulmonology"
+    },
+    {
+      "id": "TC_E2E_APPT_RHEUMATOLOGY",
+      "specialtyName": "Rheumatology",
+      "specialtySlug": "rheumatology",
+      "doctorName": "Dr. QA Rheumatology",
+      "staffUsername": "qa.rheumatology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Morning stiffness in finger joints",
+      "diagnosis": "Rheumatoid Arthritis Evaluation",
+      "tag": "@rheumatology"
+    },
+    {
+      "id": "TC_E2E_APPT_PMR_REHAB",
+      "specialtyName": "PMR and Rehab",
+      "specialtySlug": "pmr-rehab",
+      "doctorName": "Dr. QA PMR and Rehab",
+      "staffUsername": "qa.pmr.rehab@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Post-injury physical rehabilitation evaluation",
+      "diagnosis": "Musculoskeletal Rehabilitation Protocol",
+      "tag": "@pmr-rehab"
+    },
+    {
+      "id": "TC_E2E_APPT_UROLOGY",
+      "specialtyName": "Urology",
+      "specialtySlug": "urology",
+      "doctorName": "Dr. QA Urology",
+      "staffUsername": "qa.urology@omnivva.com",
+      "facility": "LifeLine Super Specialty",
+      "symptoms": "Dysuria and urinary frequency",
+      "diagnosis": "Lower Urinary Tract Evaluation",
+      "tag": "@urology"
+    }
+  ],
+  "alternateHospital": "City Central Hospital",
+  "statuses": {
+    "booked": "Booked",
+    "scheduled": "Scheduled",
+    "checkedIn": "Checked In",
+    "waiting": "Waiting for Consultation",
+    "inConsultation": "In Consultation",
+    "completed": "Completed"
+  }
+}
