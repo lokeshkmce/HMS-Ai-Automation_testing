@@ -58,9 +58,20 @@ export interface SpecialtyWorkflowConfig {
 export function getSpecialtyConfig(identifier: string): SpecialtyWorkflowConfig {
   const norm = identifier.toLowerCase().replace(/[^a-z0-9]/g, '');
   const found = testData.specialties.find(
-    (s) =>
-      s.specialtySlug.toLowerCase().replace(/[^a-z0-9]/g, '') === norm ||
-      s.specialtyName.toLowerCase().replace(/[^a-z0-9]/g, '') === norm
+    (s) => {
+      const sNormSlug = s.specialtySlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const sNormName = s.specialtyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (sNormSlug === norm || sNormName === norm) return true;
+      if (norm.includes('opthal') || norm.includes('ophthal')) {
+        return sNormSlug.includes('opthal') || sNormSlug.includes('ophthal');
+      }
+      return (
+        sNormSlug.startsWith(norm.slice(0, 5)) ||
+        norm.startsWith(sNormSlug.slice(0, 5)) ||
+        sNormName.startsWith(norm.slice(0, 5)) ||
+        norm.startsWith(sNormName.slice(0, 5))
+      );
+    }
   );
 
   if (!found) {

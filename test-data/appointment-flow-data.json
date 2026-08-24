@@ -232,10 +232,10 @@
     {
       "id": "TC_E2E_APPT_OPHTHALMOLOGY",
       "specialtyName": "Ophthalmology",
-      "specialtySlug": "opthalmology",
-      "doctorName": "Dr. QA Ophthalmology",
+      "specialtySlug": "ophthalmology",
+      "doctorName": "Dr. QA opthalmology",
       "staffUsername": "qa.opthalmology@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Blurred vision and eye strain",
       "diagnosis": "Refractive Error",
       "tag": "@ophthalmology"

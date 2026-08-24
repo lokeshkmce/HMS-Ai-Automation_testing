@@ -388,6 +388,7 @@ export class PatientBookingPage extends BasePage {
 
   /**
    * Step 2: Find Doctor — Search facility and specialty.
+   * Scoped strictly to the requested specialty: iterates all facilities of that specialty.
    */
   async step2_FindDoctor(preferredFacility?: string, specialty = 'Dental'): Promise<void> {
     logger.info(`[Step 2: Find Doctor] Searching for Specialty: "${specialty}", Preferred Facility: "${preferredFacility || 'Any'}"...`);
@@ -396,9 +397,6 @@ export class PatientBookingPage extends BasePage {
 
     let doctorFound = false;
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // STRATEGY 1: SEARCH BY SPECIALTY Tab (Direct specialty lookup + Facility rotation)
-    // ─────────────────────────────────────────────────────────────────────────────
     const specialtyTab = this.page.locator('button:has-text("SEARCH BY SPECIALTY"), [role="tab"]:has-text("SPECIALTY")').first();
     if (await specialtyTab.isVisible({ timeout: 2000 }).catch(() => false)) {
       logger.info(`[Step 2: Find Doctor] Attempting via "SEARCH BY SPECIALTY" tab...`);
@@ -418,7 +416,7 @@ export class PatientBookingPage extends BasePage {
         logger.info(`[Step 2: Find Doctor] Selected Specialty "${specialty}" on SEARCH BY SPECIALTY tab`);
         await this.page.waitForTimeout(500);
 
-        // Discover all facilities in Facility dropdown (nth(2))
+        // Discover all facilities in Facility dropdown (nth(2)) for THIS specialty
         await facilityCombo.click();
         await this.page.waitForTimeout(500);
         const facOptionEls = this.page.locator('li[role="option"], [role="option"]');
@@ -462,68 +460,80 @@ export class PatientBookingPage extends BasePage {
       }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // STRATEGY 2: Dynamic Fallback across other Specialties & Facilities
-    // ─────────────────────────────────────────────────────────────────────────────
-    if (!doctorFound) {
-      logger.info(`[Step 2: Find Doctor] No doctors found for "${specialty}". Executing dynamic fallback discovery across other specialties...`);
-      doctorFound = await this.findAnyAvailableDoctor();
-    }
-
     logger.info(`[Step 2: Find Doctor] ✓ Completed step 2 (Doctor found: ${doctorFound})`);
   }
 
   /**
    * Step 3: Select Doctor (Choose Doctor Card)
-   * If on Step 3 no doctor is found, goes back to Step 2 to search other specialties and facilities.
+   * Scoped strictly to the current specialty: prioritizes target doctor, then other available doctors in this specialty.
    */
   async step3_SelectDoctor(doctorName = 'Dr. QA Dental'): Promise<void> {
     logger.info(`[Step 3: Select Doctor] Selecting doctor card (target: "${doctorName}")...`);
     await this.ensureOnBookingPage();
     await this.page.waitForTimeout(1000);
 
-    // If no doctor found on step 3, go back and search for other specialty & facility
-    if (await this.isNoDoctorFound()) {
-      logger.info('[Step 3: Select Doctor] ⚠️ No doctor found on Step 3. Going Back to Step 2 to search other specialty & facility...');
-      await this.clickBackToStep2();
-      await this.findAnyAvailableDoctor();
-      await this.page.waitForTimeout(1000);
-    }
-
     const nextBtn = this.page.locator('main button:has-text("Next"), main button[type="submit"]')
       .or(this.page.getByRole('button', { name: /^Next$/i }))
       .first();
 
-    // 1. Try clicking the doctor's name directly (h6, h5, h4, p, span, text)
-    const nameHeading = this.page.locator('h6, h5, h4, p, span').filter({ hasText: new RegExp(doctorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }).first()
-      .or(this.page.getByText(doctorName).first());
+    // 1. Try clicking the doctor's name directly (with exact, case-insensitive, or normalized matching)
+    const normTarget = doctorName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    let matched = false;
 
-    if (await nameHeading.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await nameHeading.click();
-      await this.page.waitForTimeout(600);
-      logger.info(`[Step 3: Select Doctor] Clicked doctor name heading "${doctorName}"`);
+    // Check exact / regex
+    const nameHeading = this.page.locator('h6, h5, h4, p, span, div').filter({ hasText: new RegExp(doctorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }).first();
+    if (await nameHeading.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await nameHeading.click({ force: true });
+      await this.page.waitForTimeout(500);
+      matched = true;
     }
 
-    // 2. If Next button is still disabled, click the card wrapper matching target
-    if (await nextBtn.isDisabled().catch(() => false)) {
-      logger.info('[Step 3: Select Doctor] Trying card container matching doctor name...');
-      const cardWrapper = this.page.locator('[class*="MuiCard-root"], [class*="MuiPaper-root"], [class*="Card"], [class*="DoctorCard"]')
-        .filter({ hasText: doctorName })
-        .last();
-
-      if (await cardWrapper.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await cardWrapper.click();
-        await this.page.waitForTimeout(600);
+    // Check normalized text across all headings
+    if (!matched && normTarget) {
+      const allHeadings = this.page.locator('h6, h5, h4, p, span');
+      const hCount = await allHeadings.count();
+      for (let i = 0; i < hCount; i++) {
+        const text = (await allHeadings.nth(i).textContent())?.trim() || '';
+        const norm = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (norm && (norm === normTarget || (norm.includes('drqa') && normTarget.includes('drqa')))) {
+          logger.info(`[Step 3: Select Doctor] Matched heading "${text}" for "${doctorName}"`);
+          await allHeadings.nth(i).click({ force: true });
+          await this.page.waitForTimeout(500);
+          matched = true;
+          break;
+        }
       }
     }
 
-    // 3. If Next button is still disabled (or we fell back to a different doctor), click the FIRST available doctor card on screen
+    // 2. If Next button is still disabled, click card marked 'Available Today'
+    if (await nextBtn.isDisabled().catch(() => false)) {
+      logger.info('[Step 3: Select Doctor] Trying card with "Available Today"...');
+      const availableCard = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]')
+        .filter({ hasText: /Available Today/i })
+        .first();
+
+      if (await availableCard.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await availableCard.click({ force: true });
+        await this.page.waitForTimeout(500);
+      }
+    }
+
+    // 3. If Next button is still disabled, click the FIRST active doctor card that is NOT 'Not Available Today'
     if (await nextBtn.isDisabled().catch(() => false)) {
       logger.info('[Step 3: Select Doctor] Selecting first available active doctor card...');
-      const anyCard = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]').filter({ hasText: /Dr\./i }).first();
-      if (await anyCard.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await anyCard.click({ force: true });
-        await this.page.waitForTimeout(600);
+      const allCards = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]')
+        .filter({ hasText: /Dr\./i });
+      const cCount = await allCards.count();
+      for (let i = 0; i < cCount; i++) {
+        const card = allCards.nth(i);
+        const cardText = await card.textContent().catch(() => '');
+        if (cardText && !cardText.includes('Not Available Today')) {
+          await card.click({ force: true });
+          await this.page.waitForTimeout(500);
+          if (!(await nextBtn.isDisabled().catch(() => false))) {
+            break;
+          }
+        }
       }
     }
 
@@ -548,6 +558,7 @@ export class PatientBookingPage extends BasePage {
 
   /**
    * Step 4: Date & Time (Date entry & dynamic slot selection)
+   * Scoped strictly to this specialty: if current doctor has no slots, tries other doctors in the same specialty.
    */
   async step4_SelectDateTime(slotTime?: string, date?: string): Promise<void> {
     const todayStr = '2026-08-24';
@@ -568,29 +579,11 @@ export class PatientBookingPage extends BasePage {
       .or(this.page.getByRole('button', { name: /^Next$/i }))
       .first();
 
-    // 1. If a specific slotTime is requested, try that first
-    if (slotTime) {
-      const specificSlot = this.page.locator('button, [role="button"], [class*="chip" i], [class*="Chip" i], div, span')
-        .filter({ hasText: new RegExp(`^\\s*${slotTime.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i') })
-        .first();
-
-      if (await specificSlot.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await specificSlot.click({ force: true });
-        logger.info(`[Step 4: Date & Time] Clicked requested slot: "${slotTime}"`);
-        await this.page.waitForTimeout(600);
-      }
-    }
-
-    // 2. If Next is still disabled, iterate over all available time slot pills until one enables the Next button
-    if (await nextBtn.isDisabled().catch(() => false)) {
-      logger.info('[Step 4: Date & Time] Trying all available time slot elements...');
+    const trySelectAnySlot = async (): Promise<boolean> => {
       let allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
         .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
 
       let count = await allSlots.count();
-      logger.info(`[Step 4: Date & Time] Discovered ${count} time slot elements`);
-
-      // If no slots found on initial date, try upcoming dates
       if (count === 0) {
         const dateCandidates = ['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30'];
         for (const fDate of dateCandidates) {
@@ -603,47 +596,62 @@ export class PatientBookingPage extends BasePage {
             allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
               .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
             count = await allSlots.count();
-            if (count > 0) {
-              logger.info(`[Step 4: Date & Time] ✓ Found ${count} slots on future date "${fDate}"`);
-              break;
-            }
+            if (count > 0) break;
           }
         }
       }
 
       for (let i = 0; i < count; i++) {
-        const slotEl = allSlots.nth(i);
-        const slotText = (await slotEl.textContent())?.trim() || `Slot-${i}`;
-        await slotEl.click({ force: true }).catch(() => null);
-        await this.page.waitForTimeout(400);
-
+        await allSlots.nth(i).click({ force: true }).catch(() => null);
+        await this.page.waitForTimeout(300);
         if (!(await nextBtn.isDisabled().catch(() => false))) {
-          logger.info(`[Step 4: Date & Time] ✓ Successfully selected slot: "${slotText}"`);
-          break;
+          return true;
+        }
+      }
+      return !(await nextBtn.isDisabled().catch(() => false));
+    };
+
+    let slotSelected = await trySelectAnySlot();
+
+    // If still no slot for this doctor, go Back to Step 3 and try other available doctors in this specialty
+    if (!slotSelected) {
+      logger.warn('[Step 4: Date & Time] No slots for primary doctor. Trying other doctors in this specialty...');
+      const backBtn = this.page.locator('main button:has-text("Back"), main [role="button"]:has-text("Back")')
+        .or(this.page.getByRole('button', { name: /^Back$/i })).first();
+      if (await backBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await backBtn.click();
+        await this.page.waitForTimeout(1000);
+      }
+
+      const allDoctorCards = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]')
+        .filter({ hasText: /Dr\./i });
+      const docCount = await allDoctorCards.count();
+
+      for (let d = 0; d < docCount; d++) {
+        const card = allDoctorCards.nth(d);
+        const cardText = await card.textContent().catch(() => '');
+        if (cardText && !cardText.includes('Not Available Today')) {
+          await card.click({ force: true });
+          await this.page.waitForTimeout(500);
+
+          if (!(await nextBtn.isDisabled().catch(() => false))) {
+            await this.clickNext();
+            await this.page.waitForTimeout(1000);
+
+            slotSelected = await trySelectAnySlot();
+            if (slotSelected) break;
+
+            // If this doctor also has no slots, click back to Step 3 for next iteration
+            if (await backBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+              await backBtn.click();
+              await this.page.waitForTimeout(800);
+            }
+          }
         }
       }
     }
 
-    // 3. If Next is STILL disabled after all date checks, fall back to another doctor/specialty with active slots
-    if (await nextBtn.isDisabled().catch(() => false)) {
-      logger.warn('[Step 4: Date & Time] No available slots for this doctor on any date. Returning to Step 2 to fallback to an available specialty/doctor...');
-      await this.clickBackToStep2();
-      await this.findAnyAvailableDoctor();
-      await this.step3_SelectDoctor('Dr. QA Dental');
-
-      const dentalSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
-        .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
-      const dCount = await dentalSlots.count();
-      for (let i = 0; i < dCount; i++) {
-        await dentalSlots.nth(i).click({ force: true }).catch(() => null);
-        await this.page.waitForTimeout(400);
-        if (!(await nextBtn.isDisabled().catch(() => false))) {
-          break;
-        }
-      }
-    }
-
-    await this.page.waitForTimeout(800);
+    await this.page.waitForTimeout(600);
     await this.clickNext();
     logger.info('[Step 4: Date & Time] ✓ Completed step 4');
   }
