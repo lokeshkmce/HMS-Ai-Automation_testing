@@ -818,60 +818,51 @@ export class DoctorQueuePage extends BasePage {
 
     const diagnosis = config.diagnosis || 'General Consultation Completed';
 
-    // If "In Consult" tab is present, try clicking it
-    await this.clickInConsultTab().catch(() => false);
+    // 1. First attempt to Start Consult from the Queue
+    let opened = await this.startConsult(config.startIndex ?? startIndex);
 
-    // If Clinical Assessment chips are present (e.g. Wound Review, Hernia, Mass), click them
-    await this.clickClinicalAssessmentChips().catch(() => null);
-
-    const opened = await this.startConsult(config.startIndex ?? startIndex);
+    // 2. If not opened, check if the patient is already In Consult
     if (!opened) {
-      // If wizard is not opened, check if direct In Consult actions (Lab, Radiology, Rx, Admission, Follow-up) are visible
-      const labDone = await this.referForLab(config.labTestName || 'Arterial Blood Gas (ABG)').catch(() => false);
-      const radDone = await this.referForRadiology(config.radiologyModality || 'DEXA', config.radiologyScanName || 'X-Ray Right Knee Joint AP/Lat').catch(() => false);
-      const rxDone = await this.writeAndSavePrescription(config.quickPrescriptionQuery || 't', config.quickPrescriptionDrug || 'Losartan 50mg').catch(() => false);
-      const admitDone = await this.referForAdmission().catch(() => false);
-      const followDone = await this.scheduleFollowUp(config.scheduleNextVisit || '2026-08-31').catch(() => false);
-
-      if (labDone || radDone || rxDone || admitDone || followDone) {
-        logger.info(`[Doctor Queue] ✓ Performed direct In Consult clinical actions (Lab: ${labDone}, Rad: ${radDone}, Rx: ${rxDone}, Admit: ${admitDone}, Follow-up: ${followDone})`);
-        return;
-      }
-
-      logger.info(`[Doctor Queue] Consultation wizard was not opened (queue empty or pending). Skipping wizard steps.`);
-      return;
+      await this.clickInConsultTab().catch(() => false);
+      await this.clickClinicalAssessmentChips().catch(() => null);
+      opened = await this.startConsult(config.startIndex ?? startIndex);
     }
 
-    // Step 1: Patient Details
-    await this.fillStep1_PatientDetails({
-      chiefComplaint: config.chiefComplaint,
-      referredBy: config.referredBy,
-    });
+    if (opened) {
+      // Step 1: Patient Details
+      await this.fillStep1_PatientDetails({
+        chiefComplaint: config.chiefComplaint,
+        referredBy: config.referredBy,
+      });
 
-    // Step 2: Specialty Assessment
-    await this.fillStep2_SpecialtyAssessment({
-      imagingFindings: config.imagingFindings,
-    });
+      // Step 2: Specialty Assessment
+      await this.fillStep2_SpecialtyAssessment({
+        imagingFindings: config.imagingFindings,
+      });
 
-    // Step 3: Diagnosis & Plan & Submit
-    await this.fillStep3_DiagnosisAndPlan({
-      diagnosis: diagnosis,
-      icd10Code: config.icd10Code,
-      treatmentPlan: config.treatmentPlan,
-      plan: config.plan,
-      injection: config.injection,
-      scheduleNextVisit: config.scheduleNextVisit,
-      doctorNotes: config.doctorNotes,
-      procedure: config.procedure,
-      quantityOrDays: config.quantityOrDays,
-      prescription: config.prescription,
-    });
+      // Step 3: Diagnosis & Plan
+      await this.fillStep3_DiagnosisAndPlan({
+        diagnosis: diagnosis,
+        icd10Code: config.icd10Code,
+        treatmentPlan: config.treatmentPlan,
+        plan: config.plan,
+        injection: config.injection,
+        scheduleNextVisit: config.scheduleNextVisit,
+        doctorNotes: config.doctorNotes,
+        procedure: config.procedure,
+        quantityOrDays: config.quantityOrDays,
+        prescription: config.prescription,
+      });
+    }
 
-    // Post-consultation Clinical Orders (Suggest Lab, Suggest Radiology, Refer for Admission, Follow Up) if visible
-    await this.referForLab(config.labTestName || 'Arterial Blood Gas (ABG)').catch(() => false);
+    // 3. Perform Clinical Orders (Suggest Lab, Suggest Radiology, Refer for Admission, Follow Up)
+    await this.referForLab(config.labTestName || 'Blood Culture & Sensitivity').catch(() => false);
     await this.referForRadiology(config.radiologyModality || 'DEXA', config.radiologyScanName || 'X-Ray Right Knee Joint AP/Lat').catch(() => false);
     await this.referForAdmission().catch(() => false);
-    await this.scheduleFollowUp(config.scheduleNextVisit || '2026-08-31').catch(() => false);
+    await this.scheduleFollowUp(config.scheduleNextVisit || '2026-08-26').catch(() => false);
+
+    // 4. Final Consultation Submission & Done
+    await this.submitConsult(diagnosis).catch(() => false);
 
     logger.info(`[Doctor Queue] === Completed Full 3-Step Consultation Workflow (Diagnosis: "${diagnosis}") ===`);
   }
