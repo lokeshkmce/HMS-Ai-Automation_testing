@@ -140,6 +140,29 @@
       "tag": "@emergency-endo"
     },
     {
+      "id": "TC_E2E_APPT_GENERAL_SURGERY",
+      "specialtyName": "General Surgery",
+      "specialtySlug": "generalsurgery",
+      "doctorName": "Dr. QA General Surgery",
+      "staffUsername": "qa.generalsurgery@omnivva.com",
+      "facility": "Omnivva Central Hospital",
+      "symptoms": "Abdominal wall hernia and localized pain",
+      "upiId": "loki@upi",
+      "diagnosis": "Inguinal Hernia",
+      "icd10Code": "K40.90",
+      "treatmentPlan": "Elective herniorrhaphy planned, preoperative cardiac clearance advised.",
+      "doctorNotes": "Patient educated on post-op wound care and lifting restrictions.",
+      "prescription": {
+        "drugQuery": "t",
+        "drugName": "Losartan 50mg",
+        "dosage": "50mg",
+        "frequency": "1",
+        "clinicalAdvice": "Take after meals"
+      },
+      "scheduleNextVisit": "2026-08-31",
+      "tag": "@generalsurgery"
+    },
+    {
       "id": "TC_E2E_APPT_ENT",
       "specialtyName": "ENT",
       "specialtySlug": "ent",
