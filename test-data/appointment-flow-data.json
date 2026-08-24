@@ -186,6 +186,21 @@
       "tag": "@infectious-disease"
     },
     {
+      "id": "TC_E2E_APPT_INTERNAL_MEDICINE",
+      "specialtyName": "Internal Medicine",
+      "specialtySlug": "internal-medicine",
+      "doctorName": "Dr. QA Internal Medicine",
+      "staffUsername": "qa.internalmedicine@omnivva.com",
+      "facility": "Omnivva Central Hospital",
+      "symptoms": "Persistent fever, body aches, and weakness",
+      "upiId": "loki@upi",
+      "diagnosis": "Viral Illness / Hypertension",
+      "icd10Code": "I10",
+      "treatmentPlan": "Tab Amlodipine 5mg OD, lifestyle counseling, regular BP monitoring.",
+      "doctorNotes": "Patient advised on low-salt diet and follow-up in 2 weeks.",
+      "tag": "@internal-medicine"
+    },
+    {
       "id": "TC_E2E_APPT_ENT",
       "specialtyName": "ENT",
       "specialtySlug": "ent",
@@ -312,8 +327,9 @@
       "specialtySlug": "oncology",
       "doctorName": "Dr. QA Oncology",
       "staffUsername": "qa.oncology@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Routine oncology follow-up consultation",
+      "upiId": "loki@upi",
       "diagnosis": "Oncology Maintenance Surveillance",
       "tag": "@oncology"
     },
@@ -334,8 +350,9 @@
       "specialtySlug": "orthopedics",
       "doctorName": "Dr. QA Orthopedics",
       "staffUsername": "qa.orthopedics@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Joint stiffness and knee pain",
+      "upiId": "loki@upi",
       "diagnosis": "Osteoarthritis Knee",
       "tag": "@orthopedics"
     },
@@ -345,7 +362,7 @@
       "specialtySlug": "plastic-surgery",
       "doctorName": "Dr. QA Plastic Surgery",
       "staffUsername": "qa.plastic.surgery@omnivva.com",
-      "facility": "MedCare General Hospital",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "My skin is damaged",
       "upiId": "loki@upi",
       "diagnosis": "Post-Traumatic Scar Assessment",
@@ -357,8 +374,9 @@
       "specialtySlug": "psychiatry",
       "doctorName": "Dr. QA Psychiatry",
       "staffUsername": "qa.psychiatry@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Sleep disturbance and anxiety",
+      "upiId": "loki@upi",
       "diagnosis": "Generalized Anxiety Disorder",
       "tag": "@psychiatry"
     },
@@ -368,8 +386,9 @@
       "specialtySlug": "pulmonology",
       "doctorName": "Dr. QA Pulmonology",
       "staffUsername": "qa.pulmonology@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Shortness of breath and chronic cough",
+      "upiId": "loki@upi",
       "diagnosis": "Mild Persistent Asthma",
       "tag": "@pulmonology"
     },
@@ -379,8 +398,9 @@
       "specialtySlug": "rheumatology",
       "doctorName": "Dr. QA Rheumatology",
       "staffUsername": "qa.rheumatology@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Morning stiffness in finger joints",
+      "upiId": "loki@upi",
       "diagnosis": "Rheumatoid Arthritis Evaluation",
       "tag": "@rheumatology"
     },
@@ -390,8 +410,9 @@
       "specialtySlug": "pmr-rehab",
       "doctorName": "Dr. QA PMR and Rehab",
       "staffUsername": "qa.pmr.rehab@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Post-injury physical rehabilitation evaluation",
+      "upiId": "loki@upi",
       "diagnosis": "Musculoskeletal Rehabilitation Protocol",
       "tag": "@pmr-rehab"
     },
@@ -401,8 +422,9 @@
       "specialtySlug": "urology",
       "doctorName": "Dr. QA Urology",
       "staffUsername": "qa.urology@omnivva.com",
-      "facility": "LifeLine Super Specialty",
+      "facility": "Omnivva Central Hospital",
       "symptoms": "Dysuria and urinary frequency",
+      "upiId": "loki@upi",
       "diagnosis": "Lower Urinary Tract Evaluation",
       "tag": "@urology"
     }

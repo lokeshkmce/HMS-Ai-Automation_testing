@@ -368,14 +368,26 @@ export class PatientBookingPage extends BasePage {
     // 2. Try normalized text matching (handles "Cardiosurgery" vs "Cardio Surgery", "Pmr and Rehab", etc.)
     if (normTarget) {
       const allOptions = this.page.locator('li[role="option"], [role="option"], .MuiMenuItem-root');
-      const optCount = await allOptions.count();
-      for (let i = 0; i < optCount; i++) {
-        const opt = allOptions.nth(i);
-        const optText = (await opt.textContent()) || '';
-        const normOpt = optText.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (normOpt && (normOpt === normTarget || normOpt.includes(normTarget) || normTarget.includes(normOpt))) {
-          logger.info(`[selectOption] Matched option "${optText.trim()}" for target "${targetStr}" (normalized: "${normOpt}" ~ "${normTarget}")`);
-          await opt.click();
+      const count = await allOptions.count();
+      for (let i = 0; i < count; i++) {
+        const text = (await allOptions.nth(i).textContent())?.trim() || '';
+        const normOpt = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normOpt && (normOpt === normTarget || normTarget.includes(normOpt) || normOpt.includes(normTarget))) {
+          // Special disambiguation: prevent "Cardiosurgery" when target is "Cardiothoracic Surgery"
+          if (normTarget.includes('thoracic') && !normOpt.includes('thoracic')) {
+            continue;
+          }
+          await allOptions.nth(i).click();
+          await this.page.waitForTimeout(600);
+          return true;
+        }
+      }
+
+      // 3. Fallback for Internal Medicine / General Medicine aliases
+      if (normTarget.includes('internalmedicine') || normTarget.includes('generalmedicine')) {
+        const medOption = allOptions.filter({ hasText: /internal medicine|general medicine/i }).first();
+        if (await medOption.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await medOption.click();
           await this.page.waitForTimeout(600);
           return true;
         }
