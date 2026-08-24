@@ -121,7 +121,7 @@
       "specialtyName": "Emergency Endocrinology",
       "specialtySlug": "emergency-endo",
       "doctorName": "Dr. QA Emergency Endocrinology",
-      "staffUsername": "qa.emergency.endocrinology@omnivva.com",
+      "staffUsername": "qa.emergency.endo@omnivva.com",
       "facility": "Omnivva Central Hospital",
       "symptoms": "Severe fatigue, altered glucose levels and dehydration",
       "upiId": "loki@upi",
@@ -129,6 +129,14 @@
       "icd10Code": "E10.10",
       "treatmentPlan": "IV fluids, regular insulin infusion protocol, close electrolyte monitoring.",
       "doctorNotes": "Admitted to endocrine intensive observation unit for continuous blood sugar charting.",
+      "prescription": {
+        "drugQuery": "t",
+        "drugName": "Cetirizine 10mg",
+        "dosage": "10mg",
+        "frequency": "1",
+        "clinicalAdvice": "Take after meals"
+      },
+      "scheduleNextVisit": "2026-08-26",
       "tag": "@emergency-endo"
     },
     {

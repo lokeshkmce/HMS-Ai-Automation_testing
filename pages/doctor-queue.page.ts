@@ -519,12 +519,12 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
-   * Action: Refer for Lab (Diagnostic test orders)
+   * Action: Refer / Suggest Lab (Diagnostic test orders)
    */
   async referForLab(testName = 'Arterial Blood Gas (ABG)'): Promise<boolean> {
     logger.info(`[Doctor Queue] Refer for Lab: selecting "${testName}"...`);
-    const referLabBtn = this.page.getByRole('button', { name: /refer for lab/i })
-      .or(this.page.locator('button:has-text("Refer for Lab")'))
+    const referLabBtn = this.page.getByRole('button', { name: /suggest lab|refer for lab/i })
+      .or(this.page.locator('button:has-text("Suggest Lab"), button:has-text("Refer for Lab")'))
       .first();
 
     if (await referLabBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -533,7 +533,7 @@ export class DoctorQueuePage extends BasePage {
 
       // Select specific test or first available test item
       const testItem = this.page.getByRole('cell', { name: new RegExp(testName, 'i') })
-        .or(this.page.locator('tr, li, div[role="button"]').filter({ hasText: new RegExp(testName, 'i') }))
+        .or(this.page.locator('tr, li, div[role="button"], td').filter({ hasText: new RegExp(testName, 'i') }))
         .first();
 
       if (await testItem.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -557,19 +557,19 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
-   * Action: Refer for Radiology (MRI / CT / X-Ray imaging orders)
+   * Action: Refer / Suggest Radiology (DEXA / MRI / CT / X-Ray imaging orders)
    */
-  async referForRadiology(modality = 'MRI', scanName = 'MRI Brain with Contrast'): Promise<boolean> {
+  async referForRadiology(modality = 'DEXA', scanName = 'X-Ray Chest PA View'): Promise<boolean> {
     logger.info(`[Doctor Queue] Refer for Radiology: modality "${modality}", scan "${scanName}"...`);
-    const referRadBtn = this.page.getByRole('button', { name: /refer for radiology/i })
-      .or(this.page.locator('button:has-text("Refer for Radiology")'))
+    const referRadBtn = this.page.getByRole('button', { name: /suggest radiology|refer for radiology/i })
+      .or(this.page.locator('button:has-text("Suggest Radiology"), button:has-text("Refer for Radiology")'))
       .first();
 
     if (await referRadBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await referRadBtn.click();
       await this.page.waitForTimeout(800);
 
-      // Click modality button (e.g. MRI)
+      // Click modality button (e.g. DEXA / MRI)
       const modalityBtn = this.page.getByRole('button', { name: new RegExp(`^${modality}$`, 'i') })
         .or(this.page.locator('button').filter({ hasText: new RegExp(`^${modality}$`, 'i') }))
         .first();
@@ -579,13 +579,14 @@ export class DoctorQueuePage extends BasePage {
         await this.page.waitForTimeout(500);
       }
 
-      // Open body part / scan combobox
-      const combobox = this.page.getByRole('combobox', { name: /search and select body part|body part/i })
+      // Open body part / scan combobox or "Open" button
+      const openComboBtn = this.page.getByRole('button', { name: /^Open$/i })
+        .or(this.page.getByRole('combobox', { name: /search and select body part|body part/i }))
         .or(this.page.locator('input[placeholder*="body part" i], [role="combobox"]'))
         .first();
 
-      if (await combobox.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await combobox.click();
+      if (await openComboBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await openComboBtn.click();
         await this.page.waitForTimeout(500);
 
         const scanOption = this.page.getByRole('option', { name: new RegExp(scanName, 'i') })
@@ -614,12 +615,45 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
+   * Action: Schedule Follow-up Visit
+   */
+  async scheduleFollowUp(date = '2026-08-26'): Promise<boolean> {
+    logger.info(`[Doctor Queue] Scheduling Follow-up for "${date}"...`);
+    const followUpBtn = this.page.getByRole('button', { name: /follow up|schedule follow-up/i })
+      .or(this.page.locator('button:has-text("Follow Up")'))
+      .first();
+
+    if (await followUpBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await followUpBtn.click();
+      await this.page.waitForTimeout(800);
+
+      const dateInput = this.page.locator('[role="dialog"] input[type="date"], input[type="date"]').first();
+      if (await dateInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await dateInput.fill(date);
+        await this.page.waitForTimeout(500);
+      }
+
+      const saveBtn = this.page.getByRole('button', { name: /save follow-up/i })
+        .or(this.page.locator('button:has-text("Save Follow-up")'))
+        .first();
+
+      if (await saveBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await saveBtn.click();
+        await this.page.waitForTimeout(1000);
+        logger.info(`[Doctor Queue] ✓ Follow-up scheduled for: "${date}"`);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Action: Write Prescription (Quick E-Prescription)
    */
-  async writeAndSavePrescription(drugQuery = 'L', drugName = 'Pantoprazole 40mg'): Promise<boolean> {
+  async writeAndSavePrescription(drugQuery = 't', drugName = 'Cetirizine 10mg'): Promise<boolean> {
     logger.info(`[Doctor Queue] Write Prescription: query "${drugQuery}", select "${drugName}"...`);
-    const writeRxBtn = this.page.getByRole('button', { name: /write prescription/i })
-      .or(this.page.locator('button:has-text("Write Prescription")'))
+    const writeRxBtn = this.page.getByRole('button', { name: /write prescription|add prescription/i })
+      .or(this.page.locator('button:has-text("Write Prescription"), button:has-text("Add Prescription")'))
       .first();
 
     if (await writeRxBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -723,6 +757,11 @@ export class DoctorQueuePage extends BasePage {
       quantityOrDays: config.quantityOrDays,
       prescription: config.prescription,
     });
+
+    // Post-consultation Clinical Orders (Suggest Lab, Suggest Radiology, Follow Up) if visible
+    await this.referForLab(config.labTestName || 'Arterial Blood Gas (ABG)').catch(() => false);
+    await this.referForRadiology(config.radiologyModality || 'DEXA', config.radiologyScanName || 'X-Ray Chest PA View').catch(() => false);
+    await this.scheduleFollowUp(config.scheduleNextVisit || '2026-08-26').catch(() => false);
 
     logger.info(`[Doctor Queue] === Completed Full 3-Step Consultation Workflow (Diagnosis: "${diagnosis}") ===`);
   }
