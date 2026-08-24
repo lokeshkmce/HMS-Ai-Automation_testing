@@ -62,9 +62,11 @@ export class ReceptionistCheckinPage extends BasePage {
     }
 
     // Fallback 2: direct URL navigation (always works once logged in as Receptionist)
-    const baseUrl = this.page.url().split('/staff/')[0];
-    logger.info('[Receptionist] Sidebar element not found — navigating directly to /staff/check-in...');
-    await this.page.goto(`${baseUrl}/staff/check-in`, { waitUntil: 'domcontentloaded' });
+    const baseUrl = this.page.url().split('/staff')[0];
+    logger.info('[Receptionist] Sidebar element not found — navigating directly to /staff/receptionist/check-in...');
+    await this.page.goto(`${baseUrl}/staff/receptionist/check-in`, { waitUntil: 'domcontentloaded' }).catch(async () => {
+      await this.page.goto(`${baseUrl}/staff/check-in`, { waitUntil: 'domcontentloaded' });
+    });
     await this.page.waitForTimeout(2500);
     logger.info(`[Receptionist] Check-in screen loaded — URL: ${this.page.url()}`);
   }

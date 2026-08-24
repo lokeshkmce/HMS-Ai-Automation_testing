@@ -64,6 +64,21 @@
       "tag": "@cardiosurgery"
     },
     {
+      "id": "TC_E2E_APPT_CARDIOTHORACIC_SURGERY",
+      "specialtyName": "Cardiothoracic Surgery",
+      "specialtySlug": "cardiothoracic-surgery",
+      "doctorName": "Dr. QA Cardiothoracic Surgery",
+      "staffUsername": "qa.cardiothoracicsurgery@omnivva.com",
+      "facility": "Omnivva Central Hospital",
+      "symptoms": "Chest pain and shortness of breath",
+      "diagnosis": "Coronary Artery Disease",
+      "icd10Code": "I25.10",
+      "treatmentPlan": "Tab Aspirin 75mg daily, Tab Atorvastatin 20mg HS, follow-up in 2 weeks.",
+      "imagingFindings": "Echo: Normal LV systolic function, no wall motion abnormalities.",
+      "doctorNotes": "Advised low-sodium cardiac diet and lifestyle modifications.",
+      "tag": "@cardiothoracicsurgery"
+    },
+    {
       "id": "TC_E2E_APPT_DENTAL",
       "specialtyName": "Dental",
       "specialtySlug": "dental",
@@ -87,6 +102,21 @@
       "tag": "@dental"
     },
     {
+      "id": "TC_E2E_APPT_FAMILY_MEDICINE",
+      "specialtyName": "Family Medicine",
+      "specialtySlug": "family-medicine",
+      "doctorName": "Dr. QA Family Medicine",
+      "staffUsername": "qa.family@omnivva.com",
+      "facility": "Omnivva Central Hospital",
+      "symptoms": "General fatigue and body ache",
+      "upiId": "loki@upi",
+      "diagnosis": "Viral Fever",
+      "icd10Code": "A90",
+      "treatmentPlan": "Tab Paracetamol 650mg TDS, adequate rest and fluids.",
+      "doctorNotes": "Patient instructed on hydration and temperature charting.",
+      "tag": "@familymedicine"
+    },
+    {
       "id": "TC_E2E_APPT_ENT",
       "specialtyName": "ENT",
       "specialtySlug": "ent",
@@ -96,17 +126,6 @@
       "symptoms": "Throat pain and ear blockage",
       "diagnosis": "Acute Pharyngitis",
       "tag": "@ent"
-    },
-    {
-      "id": "TC_E2E_APPT_FAMILY_MEDICINE",
-      "specialtyName": "Family Medicine",
-      "specialtySlug": "family-medicine",
-      "doctorName": "Dr. QA Family Medicine",
-      "staffUsername": "qa.family@omnivva.com",
-      "facility": "LifeLine Super Specialty",
-      "symptoms": "General malaise and seasonal allergies",
-      "diagnosis": "Viral Rhinitis",
-      "tag": "@family-medicine"
     },
     {
       "id": "TC_E2E_APPT_GASTRO",

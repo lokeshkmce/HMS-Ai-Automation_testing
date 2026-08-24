@@ -57,22 +57,38 @@ export interface SpecialtyWorkflowConfig {
  */
 export function getSpecialtyConfig(identifier: string): SpecialtyWorkflowConfig {
   const norm = identifier.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const found = testData.specialties.find(
-    (s) => {
-      const sNormSlug = s.specialtySlug.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const sNormName = s.specialtyName.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (sNormSlug === norm || sNormName === norm) return true;
-      if (norm.includes('opthal') || norm.includes('ophthal')) {
-        return sNormSlug.includes('opthal') || sNormSlug.includes('ophthal');
-      }
-      return (
-        sNormSlug.startsWith(norm.slice(0, 5)) ||
-        norm.startsWith(sNormSlug.slice(0, 5)) ||
-        sNormName.startsWith(norm.slice(0, 5)) ||
-        norm.startsWith(sNormName.slice(0, 5))
+  
+  // 1. Exact match first
+  let found = testData.specialties.find(
+    (s) =>
+      s.specialtySlug.toLowerCase().replace(/[^a-z0-9]/g, '') === norm ||
+      s.specialtyName.toLowerCase().replace(/[^a-z0-9]/g, '') === norm
+  );
+
+  // 2. Specialty-specific alias checks (e.g. opthalmology / ophthalmology)
+  if (!found) {
+    if (norm.includes('opthal') || norm.includes('ophthal')) {
+      found = testData.specialties.find(
+        (s) => s.specialtySlug.includes('opthal') || s.specialtySlug.includes('ophthal')
       );
     }
-  );
+  }
+
+  // 3. Fallback prefix match (only if not found)
+  if (!found) {
+    found = testData.specialties.find(
+      (s) => {
+        const sNormSlug = s.specialtySlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const sNormName = s.specialtyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (
+          sNormSlug.startsWith(norm) ||
+          norm.startsWith(sNormSlug) ||
+          sNormName.startsWith(norm) ||
+          norm.startsWith(sNormName)
+        );
+      }
+    );
+  }
 
   if (!found) {
     throw new Error(`Specialty configuration not found for identifier: "${identifier}"`);

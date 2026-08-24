@@ -476,54 +476,54 @@ export class PatientBookingPage extends BasePage {
       .or(this.page.getByRole('button', { name: /^Next$/i }))
       .first();
 
-    // 1. Try clicking the doctor's name directly (with exact, case-insensitive, or normalized matching)
+    // 1. Try finding card with matching doctor name or specialty name (e.g. Cardiothoracic)
     const normTarget = doctorName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    let matched = false;
+    const allCards = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"], main [class*="card" i]')
+      .filter({ hasText: /Dr\./i });
+    const cCount = await allCards.count();
+    logger.info(`[Step 3: Select Doctor] Found ${cCount} doctor card(s) on Step 3`);
 
-    // Check exact / regex
-    const nameHeading = this.page.locator('h6, h5, h4, p, span, div').filter({ hasText: new RegExp(doctorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }).first();
-    if (await nameHeading.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await nameHeading.click({ force: true });
-      await this.page.waitForTimeout(500);
-      matched = true;
+    // 1a. If looking for Cardiothoracic, look for card containing 'thoracic'
+    if (normTarget.includes('thoracic')) {
+      const thoracicCard = allCards.filter({ hasText: /thoracic/i }).first();
+      if (await thoracicCard.isVisible({ timeout: 2000 }).catch(() => false)) {
+        logger.info('[Step 3: Select Doctor] Selecting Cardiothoracic doctor card...');
+        await thoracicCard.click({ force: true });
+        await this.page.waitForTimeout(600);
+      }
     }
 
-    // Check normalized text across all headings
-    if (!matched && normTarget) {
-      const allHeadings = this.page.locator('h6, h5, h4, p, span');
-      const hCount = await allHeadings.count();
-      for (let i = 0; i < hCount; i++) {
-        const text = (await allHeadings.nth(i).textContent())?.trim() || '';
-        const norm = text.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (norm && (norm === normTarget || (norm.includes('drqa') && normTarget.includes('drqa')))) {
-          logger.info(`[Step 3: Select Doctor] Matched heading "${text}" for "${doctorName}"`);
-          await allHeadings.nth(i).click({ force: true });
-          await this.page.waitForTimeout(500);
-          matched = true;
-          break;
-        }
+    // 1b. Try exact / partial text heading or button inside card
+    if (await nextBtn.isDisabled().catch(() => false)) {
+      const nameHeading = this.page.locator('h6, h5, h4, p, span, div').filter({ hasText: new RegExp(doctorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }).first();
+      if (await nameHeading.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await nameHeading.click({ force: true });
+        await this.page.waitForTimeout(500);
       }
     }
 
     // 2. If Next button is still disabled, click card marked 'Available Today'
     if (await nextBtn.isDisabled().catch(() => false)) {
       logger.info('[Step 3: Select Doctor] Trying card with "Available Today"...');
-      const availableCard = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]')
-        .filter({ hasText: /Available Today/i })
-        .first();
-
-      if (await availableCard.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await availableCard.click({ force: true });
+      const availableCards = allCards.filter({ hasText: /Available Today/i });
+      const aCount = await availableCards.count();
+      for (let i = 0; i < aCount; i++) {
+        const aCard = availableCards.nth(i);
+        const aText = (await aCard.textContent())?.toLowerCase() || '';
+        if (normTarget.includes('thoracic') && !aText.includes('thoracic')) {
+          continue; // keep searching for thoracic
+        }
+        await aCard.click({ force: true });
         await this.page.waitForTimeout(500);
+        if (!(await nextBtn.isDisabled().catch(() => false))) {
+          break;
+        }
       }
     }
 
-    // 3. If Next button is still disabled, click the FIRST active doctor card that is NOT 'Not Available Today'
+    // 3. If Next button is still disabled, click first active card not marked 'Not Available Today'
     if (await nextBtn.isDisabled().catch(() => false)) {
       logger.info('[Step 3: Select Doctor] Selecting first available active doctor card...');
-      const allCards = this.page.locator('main [class*="MuiCard-root"], main [class*="MuiPaper-root"], main div[class*="Card"], main [class*="DoctorCard"]')
-        .filter({ hasText: /Dr\./i });
-      const cCount = await allCards.count();
       for (let i = 0; i < cCount; i++) {
         const card = allCards.nth(i);
         const cardText = await card.textContent().catch(() => '');
@@ -537,9 +537,8 @@ export class PatientBookingPage extends BasePage {
       }
     }
 
-    // 4. If Next button is still disabled, click any child element inside the doctor card
+    // 4. Click any inner elements if needed
     if (await nextBtn.isDisabled().catch(() => false)) {
-      logger.info('[Step 3: Select Doctor] Next button still disabled. Trying child elements...');
       const anyCardSub = this.page.locator('main [class*="MuiCard-root"] *').filter({ hasText: /Dr\.|₹|Experience/i });
       const subCount = await anyCardSub.count();
       for (let i = 0; i < Math.min(subCount, 5); i++) {
@@ -580,34 +579,52 @@ export class PatientBookingPage extends BasePage {
       .first();
 
     const trySelectAnySlot = async (): Promise<boolean> => {
-      let allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
-        .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
+      // 1. Try Time of Day filters if present
+      const timeFilterPills = this.page.locator('main button, main [role="button"]').filter({ hasText: /Morning|Afternoon|Evening|All/i });
+      const pillCount = await timeFilterPills.count().catch(() => 0);
+      for (let p = 0; p < pillCount; p++) {
+        await timeFilterPills.nth(p).click({ force: true }).catch(() => null);
+        await this.page.waitForTimeout(200);
 
-      let count = await allSlots.count();
-      if (count === 0) {
-        const dateCandidates = ['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30'];
-        for (const fDate of dateCandidates) {
-          if (await dateInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-            await dateInput.fill(fDate).catch(async () => {
-              const parts = fDate.split('-');
-              await dateInput.fill(`${parts[2]}-${parts[1]}-${parts[0]}`);
-            });
-            await this.page.waitForTimeout(600);
-            allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
-              .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
-            count = await allSlots.count();
-            if (count > 0) break;
+        let allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
+          .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
+        let count = await allSlots.count();
+
+        for (let i = 0; i < count; i++) {
+          await allSlots.nth(i).click({ force: true }).catch(() => null);
+          await this.page.waitForTimeout(300);
+          if (!(await nextBtn.isDisabled().catch(() => false))) {
+            logger.info(`[Step 4: Date & Time] ✓ Slot selected on date "${await dateInput.inputValue().catch(() => '')}"`);
+            return true;
           }
         }
       }
 
-      for (let i = 0; i < count; i++) {
-        await allSlots.nth(i).click({ force: true }).catch(() => null);
-        await this.page.waitForTimeout(300);
-        if (!(await nextBtn.isDisabled().catch(() => false))) {
-          return true;
+      // 2. Try upcoming dates
+      const dateCandidates = ['2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30'];
+      for (const fDate of dateCandidates) {
+        if (await dateInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await dateInput.fill(fDate).catch(async () => {
+            const parts = fDate.split('-');
+            await dateInput.fill(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          });
+          await this.page.waitForTimeout(600);
+
+          let allSlots = this.page.locator('main button, main [role="button"], main [class*="chip" i], main [class*="Chip" i], main div, main span')
+            .filter({ hasText: /\d{1,2}:\d{2}\s*(AM|PM)/i });
+          let count = await allSlots.count();
+
+          for (let i = 0; i < count; i++) {
+            await allSlots.nth(i).click({ force: true }).catch(() => null);
+            await this.page.waitForTimeout(300);
+            if (!(await nextBtn.isDisabled().catch(() => false))) {
+              logger.info(`[Step 4: Date & Time] ✓ Found and selected slot on date "${fDate}"`);
+              return true;
+            }
+          }
         }
       }
+
       return !(await nextBtn.isDisabled().catch(() => false));
     };
 
