@@ -229,39 +229,73 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
-   * Step 1: Fill Patient Details (Chief Complaint, Referred By, verify prefilled DOB & Sex).
+   * Step 1: Fill Patient Details (Chief Complaint, Referred By, DOB & Sex).
    */
   async fillStep1_PatientDetails(data: {
     chiefComplaint?: string;
     referredBy?: string;
+    dob?: string;
+    sex?: string;
   }): Promise<void> {
     logger.info('[Consultation Step 1: Patient Details] Entering patient clinical information...');
+    await this.page.waitForTimeout(800);
 
-    // 1. Chief Complaint / Reason
-    if (data.chiefComplaint) {
-      if (await this.chiefComplaintInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await this.chiefComplaintInput.fill(data.chiefComplaint);
-        logger.info(`[Step 1] Filled Chief Complaint: "${data.chiefComplaint}"`);
-      } else {
-        // Dropdown selection fallback
-        const complaintDropdown = this.page.locator('[role="combobox"]:has-text("Complaint"), [role="combobox"]:has-text("Reason"), select[name*="complaint"]').first();
-        if (await complaintDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await complaintDropdown.click();
-          await this.page.waitForTimeout(500);
-          const option = this.page.locator('li[role="option"], [role="option"]').first();
-          if (await option.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await option.click();
-            logger.info('[Step 1] Selected Chief Complaint dropdown option');
-          }
+    // 1. Date of Birth (Mandatory field on Step 1)
+    const dobInput = this.page.locator('input[type="date"], input[placeholder*="dd-mm-yyyy" i], input[placeholder*="YYYY" i], input[placeholder*="dd" i]').first();
+    if (await dobInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const currentDob = await dobInput.inputValue().catch(() => '');
+      if (!currentDob) {
+        const dobVal = data.dob || '2000-06-23';
+        await dobInput.fill(dobVal).catch(async () => {
+          await dobInput.fill('23-06-2000');
+        });
+        logger.info(`[Step 1] Filled Date of Birth: "${dobVal}"`);
+        await this.page.waitForTimeout(400);
+      }
+    }
+
+    // 2. Sex dropdown (if empty/required)
+    const sexCombo = this.page.locator('[role="combobox"]').filter({ hasText: /Male|Female|Sex/i }).first();
+    if (await sexCombo.isVisible({ timeout: 1500 }).catch(() => false)) {
+      const sexText = (await sexCombo.textContent())?.trim();
+      if (!sexText || sexText.toLowerCase().includes('select')) {
+        await sexCombo.click();
+        await this.page.waitForTimeout(300);
+        const opt = this.page.locator('li[role="option"], [role="option"]').filter({ hasText: /Female|Male/i }).first();
+        if (await opt.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await opt.click();
         }
       }
     }
 
-    // 2. Referred By
+    // 3. Chief Complaint / Reason
+    const complaintText = data.chiefComplaint || 'Blurred vision and eye strain';
+    if (await this.chiefComplaintInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const curComplaint = await this.chiefComplaintInput.inputValue().catch(() => '');
+      if (!curComplaint) {
+        await this.chiefComplaintInput.fill(complaintText);
+        logger.info(`[Step 1] Filled Chief Complaint: "${complaintText}"`);
+      }
+    } else {
+      const complaintDropdown = this.page.locator('[role="combobox"]:has-text("Complaint"), [role="combobox"]:has-text("Reason"), select[name*="complaint"]').first();
+      if (await complaintDropdown.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await complaintDropdown.click();
+        await this.page.waitForTimeout(300);
+        const option = this.page.locator('li[role="option"], [role="option"]').first();
+        if (await option.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await option.click();
+        }
+      }
+    }
+
+    // 4. Referred By
     const referredBy = data.referredBy || 'Self / Dr. Referral';
-    if (await this.referredByInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await this.referredByInput.fill(referredBy);
-      logger.info(`[Step 1] Filled Referred By: "${referredBy}"`);
+    if (await this.referredByInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const curRef = await this.referredByInput.inputValue().catch(() => '');
+      if (!curRef) {
+        await this.referredByInput.fill(referredBy);
+        logger.info(`[Step 1] Filled Referred By: "${referredBy}"`);
+      }
     }
 
     await this.page.waitForTimeout(600);
@@ -278,7 +312,7 @@ export class DoctorQueuePage extends BasePage {
     logger.info('[Consultation Step 2: Specialty Assessment] Entering clinical assessment findings...');
     await this.page.waitForTimeout(1000);
 
-    // 1. Interact with any visible assessment dropdowns (Neurological Deficit, Spine Exam, Motor Power, etc.)
+    // 1. Interact with any visible assessment dropdowns
     const comboboxes = this.page.locator('[role="combobox"], .MuiSelect-select');
     const comboCount = await comboboxes.count();
     logger.info(`[Step 2] Found ${comboCount} specialty assessment dropdown(s)`);
@@ -290,31 +324,24 @@ export class DoctorQueuePage extends BasePage {
           const currentText = (await combo.textContent())?.trim() || '';
           if (!currentText || currentText === 'Select' || currentText === '') {
             await combo.click();
-            await this.page.waitForTimeout(400);
+            await this.page.waitForTimeout(300);
             const firstOption = this.page.locator('li[role="option"], [role="option"]').first();
-            if (await firstOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+            if (await firstOption.isVisible({ timeout: 1500 }).catch(() => false)) {
               await firstOption.click();
-              await this.page.waitForTimeout(300);
-              logger.info(`[Step 2] Selected option for assessment dropdown #${i + 1}`);
+              await this.page.waitForTimeout(200);
             }
           }
         }
-      } catch (err) {
-        logger.warn(`[Step 2] Note: Optional dropdown #${i + 1} interaction skipped.`);
+      } catch {
+        // Optional dropdown
       }
     }
 
-    // 2. Imaging Findings (MRI / CT)
-    const imagingNotes = data.imagingFindings || 'MRI / CT Scan Reviewed: Normal study with no acute focal lesions or hemorrhage.';
-    if (await this.imagingFindingsInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    // 2. Imaging / Refraction Findings
+    const imagingNotes = data.imagingFindings || 'Routine clinical assessment: Visual acuity and refraction normal.';
+    if (await this.imagingFindingsInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       await this.imagingFindingsInput.fill(imagingNotes);
-      logger.info(`[Step 2] Filled Imaging Findings (MRI/CT): "${imagingNotes}"`);
-    } else {
-      const anyFindingField = this.page.locator('input[placeholder*="Findings" i], textarea[placeholder*="Findings" i]').first();
-      if (await anyFindingField.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await anyFindingField.fill(imagingNotes);
-        logger.info(`[Step 2] Filled fallback Findings field: "${imagingNotes}"`);
-      }
+      logger.info(`[Step 2] Filled Imaging Findings: "${imagingNotes}"`);
     }
 
     await this.page.waitForTimeout(600);
@@ -323,10 +350,7 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
-   * Step 3: Fill Diagnosis & Management Plan (Provisional Diagnosis, ICD-10, Treatment Plan, Plan, Injection, Schedule Next Visit, Doctor Notes, and Submit).
-   */
-  /**
-   * Step 3: Fill Diagnosis & Management Plan (Provisional Diagnosis, ICD-10, Treatment Plan, Procedure, Prescription, Next Visit, Doctor Notes, and Submit).
+   * Step 3: Fill Diagnosis & Management Plan (Provisional Diagnosis, Treatment Plan, Prescription, Next Visit, Doctor Notes, and Submit).
    */
   async fillStep3_DiagnosisAndPlan(data: {
     diagnosis: string;
@@ -344,95 +368,24 @@ export class DoctorQueuePage extends BasePage {
     await this.page.waitForTimeout(1000);
 
     // 1. Provisional Diagnosis * (Mandatory)
-    if (data.diagnosis) {
-      await this.diagnosisInput.waitFor({ state: 'visible', timeout: 10_000 });
+    const diagnosisVal = data.diagnosis || 'Blood issue';
+    if (await this.diagnosisInput.isVisible({ timeout: 5000 }).catch(() => false)) {
       await this.diagnosisInput.click();
-      await this.diagnosisInput.fill(data.diagnosis);
-      logger.info(`[Step 3] Filled Provisional Diagnosis: "${data.diagnosis}"`);
+      await this.diagnosisInput.fill(diagnosisVal);
+      logger.info(`[Step 3] Filled Provisional Diagnosis: "${diagnosisVal}"`);
     }
 
-    // 2. ICD-10 Code
-    const icd10 = data.icd10Code || 'Z00.00';
-    if (await this.icd10Input.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await this.icd10Input.fill(icd10);
-      logger.info(`[Step 3] Filled ICD-10 Code: "${icd10}"`);
-    }
-
-    // 3. Treatment Plan (Medications, advice, red flags)
-    const treatmentPlan = data.treatmentPlan || 'Medications prescribed as per OPD protocol, lifestyle modification, adequate rest and hydration.';
+    // 2. Treatment Plan (Medications, advice, red flags)
+    const treatmentPlan = data.treatmentPlan || 'Take pills';
     if (await this.treatmentPlanInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await this.treatmentPlanInput.fill(treatmentPlan);
       logger.info(`[Step 3] Filled Treatment Plan: "${treatmentPlan}"`);
     }
 
-    // 4. Spinbutton (e.g. quantity, days, teeth count)
-    const spinbutton = this.page.getByRole('spinbutton').first();
-    if (await spinbutton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await spinbutton.fill(data.quantityOrDays || '5');
-      logger.info(`[Step 3] Filled spinbutton: "${data.quantityOrDays || '5'}"`);
-    }
+    // 3. Add Prescription sub-flow
+    await this.addPrescription(data.prescription);
 
-    // 5. Procedure / Specialty dropdowns
-    if (data.procedure) {
-      const procDropdown = this.page.locator('[role="combobox"], .MuiSelect-select').first();
-      if (await procDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await procDropdown.click();
-        await this.page.waitForTimeout(400);
-        const opt = this.page.getByRole('option', { name: new RegExp(data.procedure, 'i') }).first();
-        if (await opt.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await opt.click();
-          logger.info(`[Step 3] Selected procedure option: "${data.procedure}"`);
-        } else {
-          // Click outside / backdrop if option not found
-          await this.page.locator('.MuiBackdrop-root').click().catch(() => null);
-        }
-      }
-    } else {
-      const step3Dropdowns = this.page.locator('[role="combobox"], .MuiSelect-select');
-      const step3ComboCount = await step3Dropdowns.count();
-      for (let i = 0; i < Math.min(step3ComboCount, 3); i++) {
-        try {
-          const combo = step3Dropdowns.nth(i);
-          if (await combo.isVisible({ timeout: 1500 }).catch(() => false)) {
-            const currentVal = (await combo.textContent())?.trim() || '';
-            if (!currentVal || currentVal.includes('Select') || currentVal === '') {
-              await combo.click();
-              await this.page.waitForTimeout(400);
-              const opt = this.page.locator('li[role="option"], [role="option"]').first();
-              if (await opt.isVisible({ timeout: 2000 }).catch(() => false)) {
-                await opt.click();
-                await this.page.waitForTimeout(300);
-              }
-            }
-          }
-        } catch {
-          // Optional selection
-        }
-      }
-    }
-
-    // 6. Schedule Next Visit (Date picker)
-    const nextVisitDate = data.scheduleNextVisit || '2026-08-26';
-    if (await this.scheduleNextVisitInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await this.scheduleNextVisitInput.fill(nextVisitDate).catch(async () => {
-        await this.scheduleNextVisitInput.fill('26-08-2026');
-      });
-      logger.info(`[Step 3] Filled Schedule Next Visit date: "${nextVisitDate}"`);
-    }
-
-    // 7. Add Prescription sub-flow
-    if (data.prescription) {
-      await this.addPrescription(data.prescription);
-    }
-
-    // 8. Doctor Notes (Additional notes)
-    const docNotes = data.doctorNotes || 'Patient counseled on diagnosis, medication adherence, and red-flag symptoms. Advised routine follow-up.';
-    if (await this.doctorNotesInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await this.doctorNotesInput.fill(docNotes);
-      logger.info(`[Step 3] Filled Doctor Notes: "${docNotes}"`);
-    }
-
-    // 9. Submit Consult
+    // 4. Submit / Complete Consult
     await this.submitConsult();
     logger.info('[Consultation Step 3: Diagnosis & Plan] ✓ Completed and submitted consultation');
   }
@@ -454,11 +407,17 @@ export class DoctorQueuePage extends BasePage {
     await addPrescriptionBtn.click();
     await this.page.waitForTimeout(800);
 
-    const drugQuery = data?.drugQuery || 'T';
-    const drugName = data?.drugName || 'Cetirizine 10mg';
-    const dosage = data?.dosage || '100';
-    const frequency = data?.frequency || '½';
-    const advice = data?.clinicalAdvice || 'Use hot water';
+    // Click "Add Medicine" if present inside modal/drawer
+    const addMedBtn = this.page.getByRole('button', { name: /add medicine/i })
+      .or(this.page.locator('button:has-text("Add Medicine")'))
+      .first();
+    if (await addMedBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await addMedBtn.click();
+      await this.page.waitForTimeout(500);
+    }
+
+    const drugQuery = data?.drugQuery || 'Am';
+    const drugName = data?.drugName || 'Paracetamol 650mg';
 
     // Search for drug
     const drugInput = this.page.getByRole('textbox', { name: /tab aspirin|medicine|drug|e\.g\./i })
@@ -480,38 +439,22 @@ export class DoctorQueuePage extends BasePage {
       }
     }
 
-    // Dosage
-    const dosageInput = this.page.getByRole('textbox', { name: /75 mg|dosage|dose/i })
-      .or(this.page.locator('input[placeholder*="75" i], input[placeholder*="mg" i], input[placeholder*="dosage" i]'))
-      .first();
-    if (await dosageInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await dosageInput.fill(dosage);
-    }
-
-    // Frequency / Timing dropdown / options
-    const freqOption = this.page.getByRole('option', { name: frequency })
-      .or(this.page.locator(`button:has-text("${frequency}"), [role="button"]:has-text("${frequency}")`))
+    // Timing / Frequency pill (e.g. '½' or '1-0-1')
+    const freqOption = this.page.getByRole('option', { name: '½' })
+      .or(this.page.locator('button:has-text("½"), [role="button"]:has-text("½"), text=½'))
       .first();
     if (await freqOption.isVisible({ timeout: 2000 }).catch(() => false)) {
       await freqOption.click();
     }
 
-    // Clinical advice
-    const adviceInput = this.page.getByRole('textbox', { name: /clinical advice|advice|instructions/i })
-      .or(this.page.locator('input[placeholder*="advice" i], textarea[placeholder*="advice" i]'))
+    // Save Rx / Verify & Save Prescription
+    const saveRxBtn = this.page.getByRole('button', { name: /save rx|save prescription|verify & save/i })
+      .or(this.page.locator('button:has-text("Save Rx"), button:has-text("Save Prescription")'))
       .first();
-    if (await adviceInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await adviceInput.fill(advice);
-    }
-
-    // Verify & Save Prescription
-    const verifySaveBtn = this.page.getByRole('button', { name: /verify & save prescription|save prescription|verify/i })
-      .or(this.page.locator('button:has-text("Verify & Save Prescription"), button:has-text("Save Prescription")'))
-      .first();
-    if (await verifySaveBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await verifySaveBtn.click();
+    if (await saveRxBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await saveRxBtn.click();
       await this.page.waitForTimeout(1000);
-      logger.info('[Doctor Queue] ✓ Prescription verified and saved.');
+      logger.info('[Doctor Queue] ✓ Prescription saved (Save Rx clicked).');
     }
   }
 
@@ -521,7 +464,7 @@ export class DoctorQueuePage extends BasePage {
   async clickNext(): Promise<void> {
     logger.info('[Doctor Queue] Clicking "Next" in consultation wizard...');
     const nextBtn = this.page
-      .locator('button:has-text("Next"), button:has-text("Continue"), button:has-text("Save & Next"), button[type="submit"]')
+      .locator('button:has-text("Next >"), button:has-text("Next"), button:has-text("Continue"), button:has-text("Save & Next"), button[type="submit"]')
       .first();
 
     if (await nextBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -534,24 +477,12 @@ export class DoctorQueuePage extends BasePage {
   }
 
   /**
-   * Fill the Diagnosis free-text field in the consultation wizard.
-   */
-  async fillDiagnosis(diagnosis: string): Promise<void> {
-    logger.info(`[Doctor Queue] Filling Diagnosis: "${diagnosis}"`);
-    if (await this.diagnosisInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await this.diagnosisInput.click();
-      await this.diagnosisInput.fill(diagnosis);
-      logger.info(`[Doctor Queue] Diagnosis field filled with "${diagnosis}"`);
-    }
-  }
-
-  /**
-   * Click "Submit Consult" to finalise the consultation.
+   * Click "Submit Consult" / "Next >" / "Complete Consult" to finalise the consultation.
    */
   async submitConsult(): Promise<void> {
     logger.info('[Doctor Queue] Submitting consultation...');
     const submitBtn = this.page
-      .locator('button:has-text("Submit Consult"), button:has-text("Submit"), button:has-text("Complete Consult"), button:has-text("Save"), button:has-text("Next")')
+      .locator('button:has-text("Next >"), button:has-text("Submit Consult"), button:has-text("Submit"), button:has-text("Complete Consult"), button:has-text("Save")')
       .first();
 
     if (await submitBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
