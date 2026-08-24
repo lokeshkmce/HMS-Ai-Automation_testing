@@ -257,8 +257,9 @@
       "specialtySlug": "plastic-surgery",
       "doctorName": "Dr. QA Plastic Surgery",
       "staffUsername": "qa.plastic.surgery@omnivva.com",
-      "facility": "LifeLine Super Specialty",
-      "symptoms": "Scar revision evaluation",
+      "facility": "MedCare General Hospital",
+      "symptoms": "My skin is damaged",
+      "upiId": "loki@upi",
       "diagnosis": "Post-Traumatic Scar Assessment",
       "tag": "@plastic-surgery"
     },
