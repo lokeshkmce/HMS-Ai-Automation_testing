@@ -405,9 +405,15 @@ export class DoctorQueuePage extends BasePage {
     // 3. Add Prescription sub-flow
     await this.addPrescription(data.prescription);
 
-    // 4. Advance Step 3 (Click Next > / Continue)
-    await this.clickNext();
-    logger.info('[Consultation Step 3: Diagnosis & Plan] ✓ Completed Step 3 Diagnosis & Plan');
+    // 4. Advance through remaining wizard steps (Click Next > twice to reach clinical orders)
+    for (let k = 0; k < 2; k++) {
+      const nextBtn = this.page.locator('button:has-text("Next >"), button:has-text("Next"), button:has-text("Continue")').first();
+      if (await nextBtn.isVisible({ timeout: 2500 }).catch(() => false)) {
+        await nextBtn.click();
+        await this.page.waitForTimeout(1000);
+      }
+    }
+    logger.info('[Consultation Step 3: Diagnosis & Plan] ✓ Completed Step 3 and advanced to Clinical Orders');
   }
 
   /**
